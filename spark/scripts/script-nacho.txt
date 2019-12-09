@@ -1,0 +1,16 @@
+println("Hello, World!")
+
+//Load the data
+println("Let's read the data!")
+val df = spark.read.format("csv").option("header", "true").load("C:/Users/Mariano/Google Drive/eit-health/semestre-1/big-data/practice/assignment/big-data-2019/spark/data/1997.csv")
+println("These are the fields:")
+df.schema.fields.foreach(x => println(x))
+println("This is how the rows look like:")
+df.take(10).foreach(println(_))
+
+//Remove forbidden variables
+println("Let's remove now the columns that can not be used for the prediction model!")
+val dfAfterDrop=df.drop("ArrTime").drop("ActualElapsedTime").drop("AirTime").drop("TaxiIn").drop("Diverted").drop("CarrierDelay").drop("WeatherDelay").drop("NASDelay").drop("SecurityDelay").drop("LateAircraftDelay")
+val df = dfAfterDrop
+df.schema.fields.foreach(x => println(x))
+
