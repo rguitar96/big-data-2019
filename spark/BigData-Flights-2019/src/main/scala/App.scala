@@ -36,6 +36,36 @@ object App {
       .fields
       .foreach(x => println(x))
 
+
+    //We decide to remove year because it always has the same value. We drop CancellationCode for it is full of NA
+    // values (1997.csv).
+    val df = df
+      .drop("Year")
+      .drop("CancellationCode")
+    //See the remaining fields
+    df
+      .schema
+      .fields
+      .foreach(x => println(x))
+
+    //Let's see how many rows are in the data frame.
+    df.count()
+
+    //We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
+    // purposes. We also filter out the rows with NA values for DepTime, DepDelay and CRSElapsedTime. The rows with
+    // cancelled flies (Cancelled == 1) will also be eliminated. The latter match in number the rows with NA values for
+    // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
+    // based on the three conditions to ensure that no NA values are left in the data.
+    val df = df
+      .filter(df("ArrDelay") =!= "NA")
+      .filter(df("DepTime") =!= "NA")
+      .filter(df("DepDelay") =!= "NA")
+      .filter(df("CRSElapsedTime") =!= "NA")
+      .filter(df("Cancelled") === 1)
+
+    // Let's see how many rows are left.
+    df.count()
+
     /*
         inputDf.printSchema()
         inputDf.show(15, truncate = false)
