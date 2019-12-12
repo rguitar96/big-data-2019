@@ -1,5 +1,6 @@
 import org.apache.spark.sql.{SparkSession, Row}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 
 object App {
 
@@ -11,7 +12,7 @@ object App {
     import spark.implicits._
 
     /////////////////////////////////////////
-    // Exercise 1
+    // Part I: Data preparation
 
     val inputDf = spark
       .read
@@ -19,7 +20,7 @@ object App {
       .option("header", "true")
       .load("data/1997.csv")
 
-    val df = inputDf
+    var df = inputDf
       .drop("ArrTime")
       .drop("ActualElapsedTime")
       .drop("AirTime")
@@ -39,7 +40,7 @@ object App {
 
     //We decide to remove year because it always has the same value. We drop CancellationCode for it is full of NA
     // values (1997.csv).
-    val df = df
+    df = df
       .drop("Year")
       .drop("CancellationCode")
     //See the remaining fields
@@ -56,7 +57,7 @@ object App {
     // cancelled flies (Cancelled == 1) will also be eliminated. The latter match in number the rows with NA values for
     // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
     // based on the three conditions to ensure that no NA values are left in the data.
-    val df = df
+    df = df
       .filter(df("ArrDelay") =!= "NA")
       .filter(df("DepTime") =!= "NA")
       .filter(df("DepDelay") =!= "NA")
@@ -67,11 +68,11 @@ object App {
     println("Total number of elements after filtering: "+df.count)
 
     //Since we only have the flights that were not cancelled, we can get rid of the Cancelled field:
-    val df = df
+    df = df
       .drop("Cancelled")
 
     //We will now change the data types of the appropriate fields from string to integer:
-    val df = df
+    df = df
       .withColumn("Month",col("Month").cast(IntegerType))
       .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
       .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
@@ -86,66 +87,15 @@ object App {
       .withColumn("Distance",col("Distance").cast(IntegerType))
       .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
 
+
+    df = df
+        .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
+
     //This is how the data frame looks like now:
     df.printSchema()
 
-    /*
-        inputDf.printSchema()
-        inputDf.show(15, truncate = false)
-
-        /////////////////////////////////////////
-        // Exercise 2
-
-        println("Total number of elements: "+inputDf.count)
-
-        println("Complete list of project names")
-        val projectList = inputDf
-          .select("project_name")
-          .distinct
-          .rdd
-          .map((r: Row) => r.getString(0))
-          .collect
-        println(projectList)
-
-        inputDf
-          .filter(col("project_name") === "en")
-          .groupBy("project_name")
-          //.sum("content_size")
-          .agg(sum("content_size").as("total_size"))
-          .show(truncate = false)
-
-        inputDf
-          .filter(col("project_name") === "en")
-          .orderBy(col("num_requests").desc)
-          .show(5, truncate = false)
-
-        // Now with SQL
-        inputDf.createOrReplaceTempView("myFakeTable")
-        spark.sql("select count(*) from myFakeTable").show
-        spark.sql("select distinct project_name from myFakeTable").show
-        spark.sql("select sum(content_size) from myFakeTable where project_name = 'en'").show
-        spark.sql("select * from myFakeTable where project_name = 'en' order by num_requests desc limit 5").show
-
-        /////////////////////////////////////////
-        // Exercise 3
-
-        println("Project summary")
-
-        val projectSummary = inputDf
-          .groupBy("project_name")
-          .agg(
-            count("page_title").as("num_pages"),
-            sum("content_size").as("content_size"),
-            mean("num_requests").as("mean_requests"))
-
-        projectSummary.show(projectList.length, truncate = false)
-
-        println("Most visited")
-        inputDf
-          .join(projectSummary.select("project_name", "mean_requests"), "project_name")
-          .filter(col("num_requests") > col("mean_requests"))
-          .show
-
-     */
+    df
+      .filter(df("DayOfWeek") >= 5)
+      .show(5)
   }
 }
