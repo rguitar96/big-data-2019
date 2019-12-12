@@ -49,7 +49,7 @@ object App {
       .foreach(x => println(x))
 
     //Let's see how many rows are in the data frame.
-    df.count()
+    println("Total number of elements before filtering: "+df.count)
 
     //We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
     // purposes. We also filter out the rows with NA values for DepTime, DepDelay and CRSElapsedTime. The rows with
@@ -61,10 +61,33 @@ object App {
       .filter(df("DepTime") =!= "NA")
       .filter(df("DepDelay") =!= "NA")
       .filter(df("CRSElapsedTime") =!= "NA")
-      .filter(df("Cancelled") === 1)
+      .filter(df("Cancelled") === 0)
 
     // Let's see how many rows are left.
-    df.count()
+    println("Total number of elements after filtering: "+df.count)
+
+    //Since we only have the flights that were not cancelled, we can get rid of the Cancelled field:
+    val df = df
+      .drop("Cancelled")
+
+    //We will now change the data types of the appropriate fields from string to integer:
+    val df = df
+      .withColumn("Month",col("Month").cast(IntegerType))
+      .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
+      .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
+      .withColumn("DepTime",col("DepTime").cast(IntegerType))
+      .withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
+      .withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
+      .withColumn("DepTime",col("DepTime").cast(IntegerType))
+      .withColumn("FlightNum",col("FlightNum").cast(IntegerType))
+      .withColumn("CRSElapsedTime",col("CRSElapsedTime").cast(IntegerType))
+      .withColumn("ArrDelay",col("ArrDelay").cast(IntegerType))
+      .withColumn("DepDelay",col("DepDelay").cast(IntegerType))
+      .withColumn("Distance",col("Distance").cast(IntegerType))
+      .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
+
+    //This is how the data frame looks like now:
+    df.printSchema()
 
     /*
         inputDf.printSchema()

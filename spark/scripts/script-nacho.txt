@@ -504,4 +504,9 @@ df.filter(df("CancellationCode") === "NA").count()
 +----------------+-------+
 5411843
 */
- 
+
+val df2 = df.drop("Year").drop("CancellationCode")
+val df3 = df2.filter(df("ArrDelay") =!= "NA").filter(df("DepTime") =!= "NA").filter(df("DepDelay") =!= "NA").filter(df("CRSElapsedTime") =!= "NA").filter(df("Cancelled") === 0)
+val df4 = df3.drop("Cancelled")
+val df5 = df4.withColumn("Month",col("Month").cast(IntegerType)).withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType)).withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType)).withColumn("DepTime",col("DepTime").cast(IntegerType)).withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType)).withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType)).withColumn("DepTime",col("DepTime").cast(IntegerType)).withColumn("FlightNum",col("FlightNum").cast(IntegerType)).withColumn("CRSElapsedTime",col("CRSElapsedTime").cast(IntegerType)).withColumn("ArrDelay",col("ArrDelay").cast(IntegerType)).withColumn("DepDelay",col("DepDelay").cast(IntegerType)).withColumn("Distance",col("Distance").cast(IntegerType)).withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
+df5.printSchema()
