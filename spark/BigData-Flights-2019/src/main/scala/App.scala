@@ -1,6 +1,7 @@
 import org.apache.spark.sql.{SparkSession, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.ml.feature.StandardScaler
 
 object App {
 
@@ -20,6 +21,7 @@ object App {
       .option("header", "true")
       .load("data/1997.csv")
 
+    // REMOVING COLUMNS AND MISSING VALUES
     var df = inputDf
       .drop("ArrTime")
       .drop("ActualElapsedTime")
@@ -38,10 +40,8 @@ object App {
       .foreach(x => println(x))
 
 
-    //We decide to remove year because it always has the same value. We drop CancellationCode for it is full of NA
-    // values (1997.csv).
+    // We drop CancellationCode for it is full of values (1997.csv).
     df = df
-      .drop("Year")
       .drop("CancellationCode")
     //See the remaining fields
     df
@@ -76,7 +76,7 @@ object App {
       .withColumn("Month",col("Month").cast(IntegerType))
       .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
       .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
-      .withColumn("DepTime",col("DepTime").cast(IntegerType))
+      //.withColumn("DepTime",col("DepTime").cast(IntegerType))
       .withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
       .withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
       .withColumn("DepTime",col("DepTime").cast(IntegerType))
@@ -88,14 +88,73 @@ object App {
       .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
 
 
+    // ADDING NEW COLUMNS
     df = df
         .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
+
+
+    df = df.withColumn("merge", concat_ws("-", $"Year", $"Month", $"DayofMonth"))
+      .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
+      .drop("merge")
+
+
+    // TRANSFORMING DATA
+
+    // Transform all cyclic data into sin/cos
+    df = df
+      .withColumn("DepTime_sin", sin(((substring(col("DepTime"), 0, 2).cast(IntegerType) * 60 + substring(col("DepTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .withColumn("DepTime_cos", cos(((substring(col("DepTime"), 0, 2).cast(IntegerType) * 60 + substring(col("DepTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .drop("DepTime")
+      .withColumn("CRSDepTime_sin", sin(((substring(col("CRSDepTime"), 0, 2).cast(IntegerType) * 60 + substring(col("CRSDepTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .withColumn("CRSDepTime_cos", cos(((substring(col("CRSDepTime"), 0, 2).cast(IntegerType) * 60 + substring(col("CRSDepTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .drop("CRSDepTime")
+      .withColumn("CRSArrTime_sin", sin(((substring(col("CRSArrTime"), 0, 2).cast(IntegerType) * 60 + substring(col("CRSArrTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .withColumn("CRSArrTime_cos", cos(((substring(col("CRSArrTime"), 0, 2).cast(IntegerType) * 60 + substring(col("CRSArrTime"), 2, 2).cast(IntegerType)) * 2 * Math.PI / (24*60))))
+      .drop("CRSArrTime")
+      .withColumn("Month_sin", sin(col("Month") * 2 * Math.PI / (12)))
+      .withColumn("Month_cos", cos(col("Month") * 2 * Math.PI / (12)))
+      .drop("Month")
+      .withColumn("DayOfMonth_sin", sin(col("DayOfMonth") * 2 * Math.PI / (31)))
+      .withColumn("DayOfMonth_cos", cos(col("DayOfMonth") * 2 * Math.PI / (31)))
+      .drop("DayOfMonth")
+      .withColumn("DayOfWeek_sin", sin(col("DayOfWeek") * 2 * Math.PI / (7)))
+      .withColumn("DayOfWeek_cos", cos(col("DayOfWeek") * 2 * Math.PI / (7)))
+      .drop("DayOfWeek")
+
+    // Normalize all numerical data
+    df = df
+      .select(min("CRSElapsedTime").alias("min_CRS"), max("CRSElapsedTime").alias("max_CRS"))
+      .crossJoin(df)
+      .withColumn("CRSElapsedTime" , (col("CRSElapsedTime") - col("min_CRS")) * 2 / (col("max_CRS") - col("min_CRS")) - 1)
+          .drop("min_CRS")
+          .drop("max_CRS")
+
+    df = df
+      .select(min("DepDelay").alias("min_delay"), max("DepDelay").alias("max_delay"))
+      .crossJoin(df)
+      .withColumn("DepDelay" , (col("DepDelay") - col("min_delay")) * 2 / (col("max_delay") - col("min_delay")) - 1)
+      .drop("min_delay")
+      .drop("max_delay")
+
+    df = df
+      .select(min("Distance").alias("min_distance"), max("Distance").alias("max_distance"))
+      .crossJoin(df)
+      .withColumn("Distance" , (col("Distance") - col("min_distance")) * 2 / (col("max_distance") - col("min_distance")) - 1)
+      .drop("min_distance")
+      .drop("max_distance")
+
+    df = df
+      .select(min("TaxiOut").alias("min_taxi"), max("TaxiOut").alias("max_taxi"))
+      .crossJoin(df)
+      .withColumn("TaxiOut" , (col("TaxiOut") - col("min_taxi")) * 2 / (col("max_taxi") - col("min_taxi")) - 1)
+      .drop("min_taxi")
+      .drop("max_taxi")
 
     //This is how the data frame looks like now:
     df.printSchema()
 
     df
-      .filter(df("DayOfWeek") >= 5)
-      .show(5)
+      .show(15)
+
   }
 }
