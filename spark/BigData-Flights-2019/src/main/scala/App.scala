@@ -52,7 +52,7 @@ object App {
     //Let's see how many rows are in the data frame.
     println("Total number of elements before filtering: "+df.count)
 
-    //We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
+    // We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
     // purposes. We also filter out the rows with NA values for DepTime, DepDelay and CRSElapsedTime. The rows with
     // cancelled flies (Cancelled == 1) will also be eliminated. The latter match in number the rows with NA values for
     // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
@@ -76,11 +76,6 @@ object App {
       .withColumn("Month",col("Month").cast(IntegerType))
       .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
       .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
-      //.withColumn("DepTime",col("DepTime").cast(IntegerType))
-      .withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
-      .withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
-      .withColumn("DepTime",col("DepTime").cast(IntegerType))
-      .withColumn("FlightNum",col("FlightNum").cast(IntegerType))
       .withColumn("CRSElapsedTime",col("CRSElapsedTime").cast(IntegerType))
       .withColumn("ArrDelay",col("ArrDelay").cast(IntegerType))
       .withColumn("DepDelay",col("DepDelay").cast(IntegerType))
@@ -156,5 +151,11 @@ object App {
     df
       .show(15)
 
+    /////////////////////////////////////////
+    // Part II: Creating the model
+
+
+    /////////////////////////////////////////
+    // Part III: Validating the model
   }
 }
