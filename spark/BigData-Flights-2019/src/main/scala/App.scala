@@ -1,7 +1,10 @@
 import org.apache.spark.sql.{SparkSession, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.ml.feature.StandardScaler
+import org.apache.spark.ml.feature._
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.clustering.KMeans
+
 
 object App {
 
@@ -19,9 +22,8 @@ object App {
       .read
       .format("csv")
       .option("header", "true")
-      .load("data/1997.csv")
+      .load("data/1995.csv")
 
-    // REMOVING COLUMNS AND MISSING VALUES
     var df = inputDf
       .drop("ArrTime")
       .drop("ActualElapsedTime")
@@ -40,7 +42,8 @@ object App {
       .foreach(x => println(x))
 
 
-    // We drop CancellationCode for it is full of values (1997.csv).
+    //We decide to remove year because it always has the same value. We drop CancellationCode for it is full of NA
+    // values (1997.csv).
     df = df
       .drop("CancellationCode")
     //See the remaining fields
@@ -50,9 +53,9 @@ object App {
       .foreach(x => println(x))
 
     //Let's see how many rows are in the data frame.
-    println("Total number of elements before filtering: "+df.count)
+    println("Total number of elements before filtering: "+df.count())
 
-    // We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
+    //We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
     // purposes. We also filter out the rows with NA values for DepTime, DepDelay and CRSElapsedTime. The rows with
     // cancelled flies (Cancelled == 1) will also be eliminated. The latter match in number the rows with NA values for
     // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
@@ -62,6 +65,7 @@ object App {
       .filter(df("DepTime") =!= "NA")
       .filter(df("DepDelay") =!= "NA")
       .filter(df("CRSElapsedTime") =!= "NA")
+      .filter(df("FlightNum") =!= "NA")
       .filter(df("Cancelled") === 0)
 
     // Let's see how many rows are left.
@@ -73,9 +77,14 @@ object App {
 
     //We will now change the data types of the appropriate fields from string to integer:
     df = df
+      .withColumn("Year",col("Year").cast(IntegerType))
       .withColumn("Month",col("Month").cast(IntegerType))
       .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
       .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
+      .withColumn("DepTime",col("DepTime").cast(IntegerType))
+      .withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
+      .withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
+      .withColumn("DepTime",col("DepTime").cast(IntegerType))
       .withColumn("CRSElapsedTime",col("CRSElapsedTime").cast(IntegerType))
       .withColumn("ArrDelay",col("ArrDelay").cast(IntegerType))
       .withColumn("DepDelay",col("DepDelay").cast(IntegerType))
@@ -85,8 +94,10 @@ object App {
 
     // ADDING NEW COLUMNS
     df = df
-        .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
+      .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
 
+    //This is how the data frame looks like now:
+    df.printSchema()
 
     df = df.withColumn("merge", concat_ws("-", $"Year", $"Month", $"DayofMonth"))
       .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
@@ -121,8 +132,8 @@ object App {
       .select(min("CRSElapsedTime").alias("min_CRS"), max("CRSElapsedTime").alias("max_CRS"))
       .crossJoin(df)
       .withColumn("CRSElapsedTime" , (col("CRSElapsedTime") - col("min_CRS")) * 2 / (col("max_CRS") - col("min_CRS")) - 1)
-          .drop("min_CRS")
-          .drop("max_CRS")
+      .drop("min_CRS")
+      .drop("max_CRS")
 
     df = df
       .select(min("DepDelay").alias("min_delay"), max("DepDelay").alias("max_delay"))
@@ -151,11 +162,121 @@ object App {
     df
       .show(15)
 
+    //Get state and city of airports
+
+    val airports = spark
+      .read
+      .format("csv")
+      .option("header", "true")
+      .load("sup_data/airports.csv")
+
+    df = df.join(airports,
+      df("Origin") === airports("iata"),
+      "left")
+      .drop("iata")
+      .drop("airport")
+      .drop("country")
+      .drop("lat")
+      .drop("long")
+      .withColumnRenamed("city", "CityOrigion")
+      .withColumnRenamed("state", "StateOrigion")
+
+    df = df .join(airports,
+      df("Dest") === airports("iata"),
+      "left")
+      .drop("iata")
+      .drop("airport")
+      .drop("country")
+      .drop("lat")
+      .drop("long")
+      .withColumnRenamed("city", "CityDest")
+      .withColumnRenamed("state", "StateDest")
+
+
+    //Get manufacturer aircraft_type engine_type
+
+    /*
+        df = df
+          .join(airports,
+            df("TailNum") === plane_data("planeid"),
+          "full_outer")
+          .drop("type")
+          .drop("issue_date")
+          .drop("model")
+          .drop("status")
+          .drop("year")
+
+    */
+    df.show(5)
+
     /////////////////////////////////////////
     // Part II: Creating the model
+    //Make string indexers for string fetures
+    val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex")
+    val flightNumIndexer = new StringIndexer().setInputCol("FlightNum").setOutputCol("FlightNumIndex")
+    val tailNumIndexer = new StringIndexer().setInputCol("TailNum").setOutputCol("TailNumIndex")
+    val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol("OriginIndex")
+    val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol("DestIndex")
+    val cityOrigionIndexer = new StringIndexer().setInputCol("CityOrigion").setOutputCol("CityOrigionIndex")
+    val stateOrigionIndexer = new StringIndexer().setInputCol("StateOrigion").setOutputCol("StateOrigionIndex")
+    val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex")
+    val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex")
 
+
+    //Makes array of column names
+    val colNames = Array("Year"
+      //,"Month"
+      //,"DayOfMonth"
+      //,"DayOfWeek"
+      //                       , "DepTime",
+      //                       , "CRSDepTime",
+      //                       , "CRSArrTime",
+      //                       , "CRSElapsedTime",
+      //                       , "DepDelay",
+      //                       , "Distance",
+      //                       , "TaxiOut",
+      //                       , "isWeekend",
+      //                       , "UniqueCarrierIndex",
+      //                       , "FlightNumIndex",
+      //                       , "TailNumIndex",
+      //                       , "OriginIndex",
+      //                       , "DestIndex",
+      //                       , "CityOrigionIndex",
+      //                       , "StateOrigionIndex",
+      //                       , "CityDestIndex",
+      //                       , "StateDestIndex"
+    )
+
+
+    val split = df.randomSplit(Array(0.7, 0.3))
+    val training  = split(0)
+    val test = split(1)
+
+    val assembler = new VectorAssembler()
+      .setInputCols(colNames)
+      .setOutputCol("features")
+
+    // var lr = new LogisticRegression().setLabelCol("ArrDelay").setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
+
+    val kmeans = new KMeans()
+      .setFeaturesCol("features")
+      .setK(2)
+
+    val pipeline = new Pipeline()
+      .setStages(Array(
+        //uniqueCarrierIndexer, flightNumIndexer,tailNumIndexer, originIndexer, destIndexer, cityOrigionIndexer, stateOrigionIndexer, cityDestIndexer, stateDestIndexer,
+        assembler, kmeans))
+
+
+    println("Training....")
+    val model = pipeline.fit(training)
 
     /////////////////////////////////////////
     // Part III: Validating the model
+
+    println("Testing.....")
+    model.transform(test).show(5)
+
+
   }
 }
