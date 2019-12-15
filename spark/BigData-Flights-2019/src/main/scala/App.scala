@@ -4,6 +4,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.KMeans
+import org.apache.spark.ml.regression.LinearRegression
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 
 
 object App {
@@ -22,7 +24,7 @@ object App {
       .read
       .format("csv")
       .option("header", "true")
-      .load("data/1995.csv")
+      .load("data/1995_small.csv")
 
     var df = inputDf
       .drop("ArrTime")
@@ -46,11 +48,12 @@ object App {
     // values (1997.csv).
     df = df
       .drop("CancellationCode")
+
     //See the remaining fields
-    df
-      .schema
-      .fields
-      .foreach(x => println(x))
+//    df
+//      .schema
+//      .fields
+//      .foreach(x => println(x))
 
     //Let's see how many rows are in the data frame.
     println("Total number of elements before filtering: "+df.count())
@@ -97,7 +100,7 @@ object App {
       .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
 
     //This is how the data frame looks like now:
-    df.printSchema()
+    //df.printSchema()
 
     df = df.withColumn("merge", concat_ws("-", $"Year", $"Month", $"DayofMonth"))
       .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
@@ -157,10 +160,9 @@ object App {
       .drop("max_taxi")
 
     //This is how the data frame looks like now:
-    df.printSchema()
+   // df.printSchema()
 
-    df
-      .show(15)
+    df.show(15)
 
     //Get state and city of airports
 
@@ -207,44 +209,43 @@ object App {
           .drop("year")
 
     */
-    df.show(5)
+    df.show()
 
     /////////////////////////////////////////
     // Part II: Creating the model
     //Make string indexers for string fetures
-    val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex")
-    val flightNumIndexer = new StringIndexer().setInputCol("FlightNum").setOutputCol("FlightNumIndex")
-    val tailNumIndexer = new StringIndexer().setInputCol("TailNum").setOutputCol("TailNumIndex")
-    val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol("OriginIndex")
-    val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol("DestIndex")
-    val cityOrigionIndexer = new StringIndexer().setInputCol("CityOrigion").setOutputCol("CityOrigionIndex")
-    val stateOrigionIndexer = new StringIndexer().setInputCol("StateOrigion").setOutputCol("StateOrigionIndex")
-    val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex")
-    val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex")
-
+    val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex").setHandleInvalid("skip")
+    val flightNumIndexer = new StringIndexer().setInputCol("FlightNum").setOutputCol("FlightNumIndex").setHandleInvalid("skip")
+    val tailNumIndexer = new StringIndexer().setInputCol("TailNum").setOutputCol("TailNumIndex").setHandleInvalid("skip")
+    val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol("OriginIndex").setHandleInvalid("skip")
+    val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol("DestIndex").setHandleInvalid("skip")
+    val cityOrigionIndexer = new StringIndexer().setInputCol("CityOrigion").setOutputCol("CityOrigionIndex").setHandleInvalid("skip")
+    val stateOrigionIndexer = new StringIndexer().setInputCol("StateOrigion").setOutputCol("StateOrigionIndex").setHandleInvalid("skip")
+    val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex").setHandleInvalid("skip")
+    val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex").setHandleInvalid("skip")
 
     //Makes array of column names
     val colNames = Array("Year"
-      //,"Month"
-      //,"DayOfMonth"
-      //,"DayOfWeek"
-      //                       , "DepTime",
-      //                       , "CRSDepTime",
-      //                       , "CRSArrTime",
-      //                       , "CRSElapsedTime",
-      //                       , "DepDelay",
-      //                       , "Distance",
-      //                       , "TaxiOut",
-      //                       , "isWeekend",
-      //                       , "UniqueCarrierIndex",
-      //                       , "FlightNumIndex",
-      //                       , "TailNumIndex",
-      //                       , "OriginIndex",
-      //                       , "DestIndex",
-      //                       , "CityOrigionIndex",
-      //                       , "StateOrigionIndex",
-      //                       , "CityDestIndex",
-      //                       , "StateDestIndex"
+                             , "DepTime_sin", "DepTime_cos"
+                            , "CRSDepTime_sin", "CRSDepTime_cos"
+                            , "CRSArrTime_sin", "CRSArrTime_cos"
+                        //     , "Month_sin", "Month_cos"
+                            , "DayOfMonth_sin", "DayOfMonth_cos"
+                             , "DayOfWeek_sin", "DayOfWeek_cos"
+                             , "CRSElapsedTime"
+                             , "DepDelay"
+                             , "Distance"
+                             , "TaxiOut"
+                             , "isWeekend"
+                             , "UniqueCarrierIndex"
+                             , "FlightNumIndex"
+                             , "TailNumIndex"
+                             , "OriginIndex"
+                             , "DestIndex"
+                             , "CityOrigionIndex"
+                             , "StateOrigionIndex"
+                             , "CityDestIndex"
+                             , "StateDestIndex"
     )
 
 
@@ -252,21 +253,24 @@ object App {
     val training  = split(0)
     val test = split(1)
 
+    training.show(100)
+
     val assembler = new VectorAssembler()
       .setInputCols(colNames)
       .setOutputCol("features")
 
-    // var lr = new LogisticRegression().setLabelCol("ArrDelay").setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
-
-    val kmeans = new KMeans()
-      .setFeaturesCol("features")
-      .setK(2)
+     var lr = new LinearRegression()
+       .setLabelCol("ArrDelay")
+       .setMaxIter(100000)
+       .setRegParam(0.3)
+       .setTol(0.1)
+       .setElasticNetParam(0.8)
 
     val pipeline = new Pipeline()
       .setStages(Array(
-        //uniqueCarrierIndexer, flightNumIndexer,tailNumIndexer, originIndexer, destIndexer, cityOrigionIndexer, stateOrigionIndexer, cityDestIndexer, stateDestIndexer,
-        assembler, kmeans))
-
+        uniqueCarrierIndexer, flightNumIndexer,tailNumIndexer, originIndexer, destIndexer, cityOrigionIndexer, stateOrigionIndexer, cityDestIndexer, stateDestIndexer,
+        assembler,
+        lr))
 
     println("Training....")
     val model = pipeline.fit(training)
@@ -275,7 +279,22 @@ object App {
     // Part III: Validating the model
 
     println("Testing.....")
-    model.transform(test).show(5)
+    val predRes = model.transform(test)
+
+    predRes.show(15)
+
+    val regEvalR2 = new RegressionEvaluator()
+      .setMetricName("r2")
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
+
+    val regEvalMSE = new RegressionEvaluator()
+      .setMetricName("mse")
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
+
+    print("R2: "+regEvalR2.evaluate(predRes))
+    print("MSE: "+regEvalMSE.evaluate(predRes))
 
 
   }
