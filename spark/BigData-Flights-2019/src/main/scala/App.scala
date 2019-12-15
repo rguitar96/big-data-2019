@@ -195,20 +195,6 @@ object App {
       .withColumnRenamed("state", "StateDest")
 
 
-    //Get manufacturer aircraft_type engine_type
-
-    /*
-        df = df
-          .join(airports,
-            df("TailNum") === plane_data("planeid"),
-          "full_outer")
-          .drop("type")
-          .drop("issue_date")
-          .drop("model")
-          .drop("status")
-          .drop("year")
-
-    */
     df.show()
 
     /////////////////////////////////////////
