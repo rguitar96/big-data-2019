@@ -5,6 +5,9 @@ import org.apache.spark.ml.feature._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.mllib.evaluation.RegressionMetrics
+import org.apache.spark.ml.evaluation.RegressionEvaluator
+
+
 
 
 object App {
@@ -25,7 +28,7 @@ object App {
       .read
       .format("csv")
       .option("header", "true")
-      .load("data/1987_small.csv")
+      .load("data/1997_small.csv")
 
     var df = inputDf
       .drop("ArrTime")
@@ -62,10 +65,8 @@ object App {
     // based on the three conditions to ensure that no NA values are left in the data.
     df = df
       .filter(df("ArrDelay") =!= "NA")
-      .filter(df("DepTime") =!= "NA")
       .filter(df("DepDelay") =!= "NA")
       .filter(df("CRSElapsedTime") =!= "NA")
-      .filter(df("FlightNum") =!= "NA")
       .filter(df("Cancelled") === 0)
 
     // Let's see how many rows are left.
@@ -103,7 +104,6 @@ object App {
       .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
       .drop("merge")
 
-
     println("Getting supplementary data")
 
     //Get state and city of airports
@@ -121,8 +121,8 @@ object App {
       .drop("country")
       .drop("lat")
       .drop("long")
-      .withColumnRenamed("city", "CityOrigion")
-      .withColumnRenamed("state", "StateOrigion")
+      .withColumnRenamed("city", "CityOrigin")
+      .withColumnRenamed("state", "StateOrigin")
 
     df = df .join(airports,
       df("Dest") === airports("iata"),
@@ -163,6 +163,27 @@ object App {
       .withColumn("PlaneAge",when(col("PlaneAge").isNull, col("avg_PlaneAge")) otherwise col("PlaneAge"))
       .drop(col("avg_PlaneAge"))
 
+    df = df
+      .select(floor(avg("DepTime")).alias("avg_DepTime"))
+      .withColumn("avg_DepTime", when(col("avg_DepTime") < 1000, 1200) otherwise(col("avg_DepTime")))
+      .crossJoin(df)
+      .withColumn("DepTime",when(col("DepTime") < 1000, col("avg_DepTime")) otherwise col("DepTime"))
+      .drop(col("avg_DepTime"))
+
+    df = df
+      .select(floor(avg("CRSDepTime")).alias("avg_CRSDepTime"))
+      .withColumn("avg_CRSDepTime", when(col("avg_CRSDepTime") < 1000, 1200) otherwise(col("avg_CRSDepTime")))
+      .crossJoin(df)
+      .withColumn("CRSDepTime",when(col("CRSDepTime") < 1000, col("avg_CRSDepTime")) otherwise col("CRSDepTime"))
+      .drop(col("avg_CRSDepTime"))
+
+    df = df
+      .select(floor(avg("CRSArrTime")).alias("avg_CRSArrTime"))
+      .withColumn("avg_CRSArrTime", when(col("avg_CRSArrTime") < 1000, 1200) otherwise(col("avg_CRSArrTime")))
+      .crossJoin(df)
+      .withColumn("CRSArrTime",when(col("CRSArrTime") < 1000, col("avg_CRSArrTime")) otherwise col("CRSArrTime"))
+      .drop(col("avg_CRSArrTime"))
+
     df.show(15)
 
     // TRANSFORMING DATA
@@ -188,22 +209,6 @@ object App {
       .withColumn("DayOfWeek_sin", sin(col("DayOfWeek") * 2 * Math.PI / 7))
       .withColumn("DayOfWeek_cos", cos(col("DayOfWeek") * 2 * Math.PI / 7))
       .drop("DayOfWeek")
-
-    df = df
-      .filter($"DepTime_sin".isNotNull)
-      .filter($"DepTime_cos".isNotNull)
-      .filter($"CRSDepTime_sin".isNotNull)
-      .filter($"CRSDepTime_cos".isNotNull)
-      .filter($"CRSArrTime_sin".isNotNull)
-      .filter($"CRSArrTime_cos".isNotNull)
-      .filter($"Month_sin".isNotNull)
-      .filter($"Month_cos".isNotNull)
-      .filter($"DayOfMonth_sin".isNotNull)
-      .filter($"DayOfMonth_cos".isNotNull)
-      .filter($"DayOfWeek_sin".isNotNull)
-      .filter($"DayOfWeek_cos".isNotNull)
-
-    println("Total number of elements after filtering again: "+df.count)
 
     // Normalize all numerical data
     df = df
@@ -237,24 +242,23 @@ object App {
 
     df = df.withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
+    println("Total number of elements after filtering again: "+df.count)
+
     /////////////////////////////////////////
     // Part II: Creating the model
     //Make string indexers for string fetures
     val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex").setHandleInvalid("skip")
-    val flightNumIndexer = new StringIndexer().setInputCol("FlightNum").setOutputCol("FlightNumIndex").setHandleInvalid("skip")
-    val tailNumIndexer = new StringIndexer().setInputCol("TailNum").setOutputCol("TailNumIndex").setHandleInvalid("skip")
     val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol("OriginIndex").setHandleInvalid("skip")
     val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol("DestIndex").setHandleInvalid("skip")
-    val cityOrigionIndexer = new StringIndexer().setInputCol("CityOrigion").setOutputCol("CityOrigionIndex").setHandleInvalid("skip")
-    val stateOrigionIndexer = new StringIndexer().setInputCol("StateOrigion").setOutputCol("StateOrigionIndex").setHandleInvalid("skip")
+    val cityOriginIndexer = new StringIndexer().setInputCol("CityOrigin").setOutputCol("CityOriginIndex").setHandleInvalid("skip")
+    val stateOriginIndexer = new StringIndexer().setInputCol("StateOrigin").setOutputCol("StateOriginIndex").setHandleInvalid("skip")
     val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex").setHandleInvalid("skip")
     val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex").setHandleInvalid("skip")
-
 
     //Makes array of column names
     val colNames = Array(
         "Year"
-       ,"DepTime_sin", "DepTime_cos"
+      ,"DepTime_sin", "DepTime_cos"
       , "CRSDepTime_sin", "CRSDepTime_cos"
       , "CRSArrTime_sin", "CRSArrTime_cos"
       , "Month_sin", "Month_cos"
@@ -266,17 +270,16 @@ object App {
       , "TaxiOut"
       , "isWeekend"
       , "UniqueCarrierIndex"
-      , "FlightNumIndex"
-      , "TailNumIndex"
+      //, "FlightNumIndex"
+      //, "TailNumIndex"
       , "OriginIndex"
       , "DestIndex"
-      , "CityOrigionIndex"
-      , "StateOrigionIndex"
+      , "CityOriginIndex"
+      , "StateOriginIndex"
       , "CityDestIndex"
       , "StateDestIndex"
       , "PlaneAge"
     )
-
 
     val split = df.randomSplit(Array(0.7, 0.3))
     val training  = split(0)
@@ -294,9 +297,10 @@ object App {
 
     val pipeline = new Pipeline()
       .setStages(Array(
-        uniqueCarrierIndexer, flightNumIndexer,tailNumIndexer, originIndexer, destIndexer, cityOrigionIndexer, stateOrigionIndexer, cityDestIndexer, stateDestIndexer,
+        uniqueCarrierIndexer, originIndexer, destIndexer, cityOriginIndexer, stateOriginIndexer, cityDestIndexer, stateDestIndexer,
         assembler,
         lr))
+
 
     println("Training....")
     val model = pipeline.fit(training)
@@ -306,17 +310,27 @@ object App {
 
     println("Testing.....")
 
-    val holdout = model.transform(test).select("prediction", "ArrDelay")
+    val predRes = model.transform(test)
 
-    holdout.show(15)
+    predRes.show(15)
 
-    val rm = new RegressionMetrics(holdout.rdd.map(x =>
-      (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double])))
+    val regEvalR2 = new RegressionEvaluator()
+      .setMetricName("r2")
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
 
-    println("sqrt(MSE): " + Math.sqrt(rm.meanSquaredError))
-    println("sqrt(RMSE): " + Math.sqrt(rm.rootMeanSquaredError))
-    println("R Squared: " + rm.r2)
-    println("Explained Variance: " + rm.explainedVariance + "\n")
+    val regEvalRMSE = new RegressionEvaluator()
+      .setMetricName("rmse")
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
 
+    val regEvalMSE = new RegressionEvaluator()
+      .setMetricName("mse")
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
+
+    println("R2: "+regEvalR2.evaluate(predRes))
+    println("MSE: "+regEvalMSE.evaluate(predRes))
+    println("RMSE: "+regEvalRMSE.evaluate(predRes))
   }
 }
