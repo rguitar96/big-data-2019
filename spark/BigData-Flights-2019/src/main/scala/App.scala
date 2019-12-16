@@ -12,18 +12,20 @@ object App {
   def main(args: Array[String]): Unit = {
 
     val spark = SparkSession.builder().config("spark.master", "local").getOrCreate()
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
 
     import spark.implicits._
 
     /////////////////////////////////////////
     // Part I: Data preparation
 
+    println("Getting data")
+
     val inputDf = spark
       .read
       .format("csv")
       .option("header", "true")
-      .load("data/1997_small.csv")
+      .load("data/1987_small.csv")
 
     var df = inputDf
       .drop("ArrTime")
@@ -37,11 +39,7 @@ object App {
       .drop("SecurityDelay")
       .drop("LateAircraftDelay")
 
-    df
-      .schema
-      .fields
-      .foreach(x => println(x))
-
+    println("Got data")
 
     //We decide to remove year because it always has the same value. We drop CancellationCode for it is full of NA
     // values (1997.csv).
@@ -92,21 +90,83 @@ object App {
       .withColumn("DepDelay",col("DepDelay").cast(IntegerType))
       .withColumn("Distance",col("Distance").cast(IntegerType))
       .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
+      .withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
 
     // ADDING NEW COLUMNS
+    println("Adding columns")
+
     df = df
       .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
-
-    //This is how the data frame looks like now:
-    //df.printSchema()
 
     df = df.withColumn("merge", concat_ws("-", $"Year", $"Month", $"DayofMonth"))
       .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
       .drop("merge")
 
 
+    println("Getting supplementary data")
+
+    //Get state and city of airports
+    val airports = spark
+      .read
+      .format("csv")
+      .option("header", "true")
+      .load("sup_data/airports.csv")
+
+    df = df.join(airports,
+      df("Origin") === airports("iata"),
+      "left")
+      .drop("iata")
+      .drop("airport")
+      .drop("country")
+      .drop("lat")
+      .drop("long")
+      .withColumnRenamed("city", "CityOrigion")
+      .withColumnRenamed("state", "StateOrigion")
+
+    df = df .join(airports,
+      df("Dest") === airports("iata"),
+      "left")
+      .drop("iata")
+      .drop("airport")
+      .drop("country")
+      .drop("lat")
+      .drop("long")
+      .withColumnRenamed("city", "CityDest")
+      .withColumnRenamed("state", "StateDest")
+
+    //Get plane features
+    val planes = spark
+      .read
+      .format("csv")
+      .option("header", "true")
+      .load("sup_data/plane-data.csv")
+      .withColumnRenamed("tailnum", "planeTailNum")
+      .withColumnRenamed("year", "manufacturedYear")
+
+
+    df = df .join(planes,
+      df("TailNum") === planes("planeTailNum"),
+      "left")
+      .drop("planeTailNum")
+      .drop("type")
+      .drop("issue_date")
+      .drop("status")
+      .drop("engine_type")
+      .withColumn("PlaneAge", col("Year") - col("manufacturedYear").cast(IntegerType) )
+      .drop("manufacturedYear")
+
+    df = df
+      .select(floor(avg("PlaneAge")).alias("avg_PlaneAge"))
+        .withColumn("avg_PlaneAge", when(col("avg_PlaneAge").isNull, 10) otherwise(col("avg_PlaneAge")))
+      .crossJoin(df)
+      .withColumn("PlaneAge",when(col("PlaneAge").isNull, col("avg_PlaneAge")) otherwise col("PlaneAge"))
+      .drop(col("avg_PlaneAge"))
+
+    df.show(15)
+
     // TRANSFORMING DATA
+    println("Transforming data")
 
     // Transform all cyclic data into sin/cos
     df = df
@@ -160,6 +220,7 @@ object App {
       .drop("min_delay")
       .drop("max_delay")
 
+
     df = df
       .select(min("Distance").alias("min_distance"), max("Distance").alias("max_distance"))
       .crossJoin(df)
@@ -174,43 +235,7 @@ object App {
       .drop("min_taxi")
       .drop("max_taxi")
 
-    //This is how the data frame looks like now:
-    // df.printSchema()
-
-    df.show(15)
-
-    //Get state and city of airports
-
-    val airports = spark
-      .read
-      .format("csv")
-      .option("header", "true")
-      .load("sup_data/airports.csv")
-
-    df = df.join(airports,
-      df("Origin") === airports("iata"),
-      "left")
-      .drop("iata")
-      .drop("airport")
-      .drop("country")
-      .drop("lat")
-      .drop("long")
-      .withColumnRenamed("city", "CityOrigion")
-      .withColumnRenamed("state", "StateOrigion")
-
-    df = df .join(airports,
-      df("Dest") === airports("iata"),
-      "left")
-      .drop("iata")
-      .drop("airport")
-      .drop("country")
-      .drop("lat")
-      .drop("long")
-      .withColumnRenamed("city", "CityDest")
-      .withColumnRenamed("state", "StateDest")
-
-
-    df.show()
+    df = df.withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
     /////////////////////////////////////////
     // Part II: Creating the model
@@ -225,9 +250,11 @@ object App {
     val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex").setHandleInvalid("skip")
     val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex").setHandleInvalid("skip")
 
+
     //Makes array of column names
-    val colNames = Array("Year"
-      , "DepTime_sin", "DepTime_cos"
+    val colNames = Array(
+        "Year"
+       ,"DepTime_sin", "DepTime_cos"
       , "CRSDepTime_sin", "CRSDepTime_cos"
       , "CRSArrTime_sin", "CRSArrTime_cos"
       , "Month_sin", "Month_cos"
@@ -247,6 +274,7 @@ object App {
       , "StateOrigionIndex"
       , "CityDestIndex"
       , "StateDestIndex"
+      , "PlaneAge"
     )
 
 
@@ -254,17 +282,14 @@ object App {
     val training  = split(0)
     val test = split(1)
 
-    training.show(100)
-
     val assembler = new VectorAssembler()
       .setInputCols(colNames)
       .setOutputCol("features")
 
     val lr = new LinearRegression()
       .setLabelCol("ArrDelay")
-      .setMaxIter(10)
+      .setMaxIter(1000)
       .setRegParam(0.3)
-      .setTol(0.1)
       .setElasticNetParam(0.8)
 
     val pipeline = new Pipeline()
@@ -283,13 +308,15 @@ object App {
 
     val holdout = model.transform(test).select("prediction", "ArrDelay")
 
+    holdout.show(15)
+
     val rm = new RegressionMetrics(holdout.rdd.map(x =>
       (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double])))
 
     println("sqrt(MSE): " + Math.sqrt(rm.meanSquaredError))
+    println("sqrt(RMSE): " + Math.sqrt(rm.rootMeanSquaredError))
     println("R Squared: " + rm.r2)
     println("Explained Variance: " + rm.explainedVariance + "\n")
-
 
   }
 }

@@ -7,19 +7,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="05fe4a2e-daf3-4525-af0c-9afdf5b0de52" name="Default Changelist" comment="">
-<<<<<<< HEAD
-      <change beforePath="$PROJECT_DIR$/.idea/BigData-Flights-2019.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/BigData-Flights-2019.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/App.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/App.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.11/classes/App$$anonfun$main$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.11/classes/App$$anonfun$main$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.11/classes/App$$anonfun$main$2.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.11/classes/App$.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.11/classes/App$.class" afterDir="false" />
-=======
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/App.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/App.scala" afterDir="false" />
->>>>>>> 6a60539e5a72339c9d783dc70f95eecd93d7cd61
+      <change beforePath="$PROJECT_DIR$/target/scala-2.11/classes/App$$anonfun$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.11/classes/App$$anonfun$1.class" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -73,18 +64,6 @@
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="sbt.project.settings.configurable" />
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager">
     <configuration name="App" type="Application" factoryName="Application">
@@ -171,14 +150,22 @@
     </option>
     <option name="modificationStamps">
       <map>
-<<<<<<< HEAD
-        <entry key="$PROJECT_DIR$" value="3152336718802" />
-=======
-        <entry key="$PROJECT_DIR$" value="3152675271205" />
->>>>>>> 6a60539e5a72339c9d783dc70f95eecd93d7cd61
+        <entry key="$PROJECT_DIR$" value="3152859724946" />
         <entry key="$PROJECT_DIR$/build.sbt" value="3658509779" />
         <entry key="$PROJECT_DIR$/project/build.properties" value="1134086237" />
       </map>
+    </option>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
     </option>
   </component>
   <component name="SvnConfiguration">
@@ -206,7 +193,14 @@
       <option name="project" value="LOCAL" />
       <updated>1576417990458</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Added code to set taxi out to &quot;15&quot; (average in real life)if null. Both at time of casting to int and after max/min">
+      <created>1576455306618</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1576455306618</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -226,7 +220,8 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="First end-to-end" />
     <MESSAGE value="Changes to string indexers" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changes to string indexers" />
+    <MESSAGE value="Added code to set taxi out to &quot;15&quot; (average in real life)if null. Both at time of casting to int and after max/min" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added code to set taxi out to &quot;15&quot; (average in real life)if null. Both at time of casting to int and after max/min" />
   </component>
   <component name="WindowStateProjectService">
     <state x="418" y="93" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1576344327140">
@@ -242,10 +237,10 @@
       <screen x="0" y="0" width="1920" height="992" />
     </state>
     <state x="692" y="183" width="525" height="415" key="#com.intellij.ide.util.TreeClassChooserDialog/0.0.1920.992@0.0.1920.992" timestamp="1576336173694" />
-    <state x="466" y="50" width="983" height="807" key="CommitChangelistDialog2" timestamp="1576417926808">
+    <state x="466" y="50" width="983" height="807" key="CommitChangelistDialog2" timestamp="1576455303430">
       <screen x="0" y="31" width="1920" height="841" />
     </state>
-    <state x="466" y="50" width="983" height="807" key="CommitChangelistDialog2/0.31.1920.841@0.31.1920.841" timestamp="1576417926808" />
+    <state x="466" y="50" width="983" height="807" key="CommitChangelistDialog2/0.31.1920.841@0.31.1920.841" timestamp="1576455303430" />
     <state x="697" y="196" width="521" height="480" key="EnvironmentVariablesDialog" timestamp="1576344306053">
       <screen x="0" y="31" width="1920" height="841" />
     </state>
@@ -255,26 +250,34 @@
     </state>
     <state x="743" y="191" width="424" height="472" key="FileChooserDialogImpl/0.0.1920.992@0.0.1920.992" timestamp="1576335928707" />
     <state x="743" y="193" width="430" height="514" key="FileChooserDialogImpl/0.31.1920.841@0.31.1920.841" timestamp="1576344322697" />
-    <state width="1637" height="183" key="GridCell.Tab.0.bottom" timestamp="1576417834124">
-      <screen x="0" y="31" width="1920" height="841" />
+    <state width="1364" height="393" key="GridCell.Tab.0.bottom" timestamp="1576503625753">
+      <screen x="0" y="0" width="1616" height="909" />
     </state>
-    <state width="1108" height="411" key="GridCell.Tab.0.bottom/0.0.1920.992@0.0.1920.992" timestamp="1576337081461" />
-    <state width="1637" height="183" key="GridCell.Tab.0.bottom/0.31.1920.841@0.31.1920.841" timestamp="1576417834124" />
-    <state width="1637" height="183" key="GridCell.Tab.0.center" timestamp="1576417834122">
-      <screen x="0" y="31" width="1920" height="841" />
+    <state width="1365" height="393" key="GridCell.Tab.0.bottom/0.0.1616.877@0.0.1616.877" timestamp="1576502997434" />
+    <state width="1364" height="393" key="GridCell.Tab.0.bottom/0.0.1616.909@0.0.1616.909" timestamp="1576503625753" />
+    <state width="1629" height="458" key="GridCell.Tab.0.bottom/0.0.1920.992@0.0.1920.992" timestamp="1576491537411" />
+    <state width="1630" height="361" key="GridCell.Tab.0.bottom/0.31.1920.841@0.31.1920.841" timestamp="1576455670332" />
+    <state width="1364" height="393" key="GridCell.Tab.0.center" timestamp="1576503625751">
+      <screen x="0" y="0" width="1616" height="909" />
     </state>
-    <state width="1108" height="411" key="GridCell.Tab.0.center/0.0.1920.992@0.0.1920.992" timestamp="1576337081460" />
-    <state width="1637" height="183" key="GridCell.Tab.0.center/0.31.1920.841@0.31.1920.841" timestamp="1576417834122" />
-    <state width="1637" height="183" key="GridCell.Tab.0.left" timestamp="1576417834121">
-      <screen x="0" y="31" width="1920" height="841" />
+    <state width="1365" height="393" key="GridCell.Tab.0.center/0.0.1616.877@0.0.1616.877" timestamp="1576502997432" />
+    <state width="1364" height="393" key="GridCell.Tab.0.center/0.0.1616.909@0.0.1616.909" timestamp="1576503625751" />
+    <state width="1629" height="458" key="GridCell.Tab.0.center/0.0.1920.992@0.0.1920.992" timestamp="1576491537409" />
+    <state width="1630" height="361" key="GridCell.Tab.0.center/0.31.1920.841@0.31.1920.841" timestamp="1576455670331" />
+    <state width="1364" height="393" key="GridCell.Tab.0.left" timestamp="1576503625749">
+      <screen x="0" y="0" width="1616" height="909" />
     </state>
-    <state width="1108" height="411" key="GridCell.Tab.0.left/0.0.1920.992@0.0.1920.992" timestamp="1576337081459" />
-    <state width="1637" height="183" key="GridCell.Tab.0.left/0.31.1920.841@0.31.1920.841" timestamp="1576417834121" />
-    <state width="1637" height="183" key="GridCell.Tab.0.right" timestamp="1576417834123">
-      <screen x="0" y="31" width="1920" height="841" />
+    <state width="1365" height="393" key="GridCell.Tab.0.left/0.0.1616.877@0.0.1616.877" timestamp="1576502997428" />
+    <state width="1364" height="393" key="GridCell.Tab.0.left/0.0.1616.909@0.0.1616.909" timestamp="1576503625749" />
+    <state width="1629" height="458" key="GridCell.Tab.0.left/0.0.1920.992@0.0.1920.992" timestamp="1576491537407" />
+    <state width="1630" height="361" key="GridCell.Tab.0.left/0.31.1920.841@0.31.1920.841" timestamp="1576455670331" />
+    <state width="1364" height="393" key="GridCell.Tab.0.right" timestamp="1576503625752">
+      <screen x="0" y="0" width="1616" height="909" />
     </state>
-    <state width="1108" height="411" key="GridCell.Tab.0.right/0.0.1920.992@0.0.1920.992" timestamp="1576337081460" />
-    <state width="1637" height="183" key="GridCell.Tab.0.right/0.31.1920.841@0.31.1920.841" timestamp="1576417834123" />
+    <state width="1365" height="393" key="GridCell.Tab.0.right/0.0.1616.877@0.0.1616.877" timestamp="1576502997433" />
+    <state width="1364" height="393" key="GridCell.Tab.0.right/0.0.1616.909@0.0.1616.909" timestamp="1576503625752" />
+    <state width="1629" height="458" key="GridCell.Tab.0.right/0.0.1920.992@0.0.1920.992" timestamp="1576491537411" />
+    <state width="1630" height="361" key="GridCell.Tab.0.right/0.31.1920.841@0.31.1920.841" timestamp="1576455670332" />
     <state width="939" height="279" key="GridCell.Tab.1.bottom" timestamp="1576371324403">
       <screen x="0" y="31" width="1920" height="841" />
     </state>
@@ -295,15 +298,16 @@
       <screen x="0" y="0" width="1920" height="992" />
     </state>
     <state x="449" y="104" key="SettingsEditor/0.0.1920.992@0.0.1920.992" timestamp="1576336747391" />
-    <state x="555" y="189" width="806" height="530" key="Vcs.Push.Dialog.v2" timestamp="1576347609418">
+    <state x="555" y="189" width="806" height="530" key="Vcs.Push.Dialog.v2" timestamp="1576455510759">
       <screen x="0" y="31" width="1920" height="841" />
     </state>
-    <state x="555" y="189" width="806" height="530" key="Vcs.Push.Dialog.v2/0.31.1920.841@0.31.1920.841" timestamp="1576347609418" />
-    <state x="626" y="267" key="com.intellij.ide.util.TipDialog" timestamp="1576416361609">
-      <screen x="0" y="31" width="1920" height="841" />
+    <state x="555" y="189" width="806" height="530" key="Vcs.Push.Dialog.v2/0.31.1920.841@0.31.1920.841" timestamp="1576455510759" />
+    <state x="140" y="132" key="com.intellij.ide.util.TipDialog" timestamp="1576487731049">
+      <screen x="0" y="0" width="808" height="535" />
     </state>
     <state x="626" y="278" key="com.intellij.ide.util.TipDialog/0.0.1920.992@0.0.1920.992" timestamp="1576338225319" />
-    <state x="626" y="267" key="com.intellij.ide.util.TipDialog/0.31.1920.841@0.31.1920.841" timestamp="1576416361609" />
+    <state x="140" y="132" key="com.intellij.ide.util.TipDialog/0.0.808.535@0.0.808.535" timestamp="1576487731049" />
+    <state x="626" y="267" key="com.intellij.ide.util.TipDialog/0.31.1920.841@0.31.1920.841" timestamp="1576432461305" />
     <state x="643" y="246" width="629" height="416" key="git4idea.merge.GitPullDialog" timestamp="1576418196639">
       <screen x="0" y="31" width="1920" height="841" />
     </state>
@@ -313,19 +317,17 @@
     </state>
     <state x="623" y="193" width="672" height="678" key="search.everywhere.popup/0.31.1920.841@0.31.1920.841" timestamp="1576416490816" />
   </component>
-<<<<<<< HEAD
-=======
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="scala-line">
           <url>file://$PROJECT_DIR$/src/main/scala/App.scala</url>
-          <line>254</line>
+          <line>282</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="scala-line">
           <url>file://$PROJECT_DIR$/src/main/scala/App.scala</url>
-          <line>243</line>
+          <line>270</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>
@@ -336,5 +338,4 @@
       </configuration>
     </watches-manager>
   </component>
->>>>>>> 6a60539e5a72339c9d783dc70f95eecd93d7cd61
 </project>
