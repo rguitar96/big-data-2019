@@ -28,7 +28,7 @@ object App {
       .format("csv")
       .option("inferSchema", "true")
       .option("header", "true")
-      .load("data/1997.csv")
+      .load("data/2008.csv")
 
     var df = inputDf
       .drop("ArrTime", "ActualElapsedTime", "AirTime", "TaxiIn", "Diverted", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay", "CancellationCode")
@@ -82,7 +82,7 @@ object App {
       .withColumn("isWeekend", when(df.col("DayOfWeek") > 5, true) otherwise false)
 
     df = df.withColumn("merge", concat_ws("-", $"Year", $"Month", $"DayofMonth"))
-      .withColumn("date", to_date(unix_timestamp($"merge", "yyyy-MM-dd").cast("timestamp")))
+      .withColumn("date", unix_timestamp($"merge", "yyyy-MM-dd"))
       .drop("merge")
 
     // TRANSFORMING DATA
@@ -112,7 +112,7 @@ object App {
       .drop("DayOfMonth")
       //.withColumn("DayOfWeek_sin", sin(col("DayOfWeek") * 2 * Math.PI / 7))
       //.withColumn("DayOfWeek_cos", cos(col("DayOfWeek") * 2 * Math.PI / 7))
-      .drop("DayOfWeek")
+      //.drop("DayOfWeek")
 
     df = df.withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
@@ -133,12 +133,10 @@ object App {
     val colNames = Array(
        "DepDelay"
       , "TaxiOut"
-      //, "isWeekend"
-      //,"DepTime_sin", "DepTime_cos"
-      //, "CRSDepTime_sin", "CRSDepTime_cos"
-      //, "CRSArrTime_sin", "CRSArrTime_cos"
-      //, "OriginIndex"
-      //, "date"
+      , "DepTime_sin", "DepTime_cos"
+      , "DayOfWeek"
+      , "OriginIndex"
+      , "date"
     )
 
     val split = df.randomSplit(Array(0.7, 0.3))
@@ -162,7 +160,7 @@ object App {
 
     val pipeline = new Pipeline()
       .setStages(Array(
-        //originIndexer,
+        originIndexer,
         assembler,
         scaler,
         lr))
