@@ -1,4 +1,4 @@
 [debug] "not up to date. inChanged = true, force = false
-[debug] Updating ProjectRef(uri("file:/home/dburrell/big-data-2019/spark/BigData-Flights-2019/"), "bigdata-flights-2019")...
-[debug] Done updating ProjectRef(uri("file:/home/dburrell/big-data-2019/spark/BigData-Flights-2019/"), "bigdata-flights-2019")
+[debug] Updating ProjectRef(uri("file:/home/rodrigo/universidad/big-data-2019/spark/BigData-Flights-2019/"), "bigdata-flights-2019")...
+[debug] Done updating ProjectRef(uri("file:/home/rodrigo/universidad/big-data-2019/spark/BigData-Flights-2019/"), "bigdata-flights-2019")
 [warn] There may be incompatibilities among your library dependencies; run 'evicted' to see detailed eviction warnings.
