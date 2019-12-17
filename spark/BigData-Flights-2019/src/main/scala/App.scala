@@ -3,11 +3,9 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
+import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel, RandomForestRegressor}
 import org.apache.spark.ml.evaluation.RegressionEvaluator
-
-
-
+import org.apache.spark.ml.tuning.ParamGridBuilder
 
 object App {
 
@@ -28,7 +26,7 @@ object App {
       .format("csv")
       .option("inferSchema", "true")
       .option("header", "true")
-      .load("data/2008.csv")
+      .load("data/2005_small.csv")
 
     var df = inputDf
       .drop("ArrTime", "ActualElapsedTime", "AirTime", "TaxiIn", "Diverted", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay", "CancellationCode")
@@ -44,11 +42,11 @@ object App {
     // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
     // based on the three conditions to ensure that no NA values are left in the data.
 
-    df = df
-      .filter($"ArrDelay" =!= "NA")
-      .filter($"DepDelay" =!= "NA")
-      .filter($"CRSElapsedTime" =!= "NA")
-      .filter($"Cancelled" === 0)
+    //df = df
+      //   .filter($"ArrDelay" =!= "NA")
+//      .filter($"DepDelay" =!= "NA")
+//      .filter($"CRSElapsedTime" =!= "NA")
+//      .filter($"Cancelled" === 0)
 
     //Since we only have the flights that were not cancelled, we can get rid of the Cancelled field:
     df = df
@@ -74,6 +72,7 @@ object App {
       .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
       .withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
+    df = df.filter(col("ArrDelay").isNotNull)
 
     // ADDING NEW COLUMNS
     println("Adding columns")
@@ -118,6 +117,8 @@ object App {
 
     println("Total number of elements before training: "+df.count)
 
+    df.show(15)
+
     /////////////////////////////////////////
     // Part II: Creating the model
     //Make string indexers for string fetures
@@ -129,8 +130,24 @@ object App {
     //val cityDestIndexer = new StringIndexer().setInputCol("CityDest").setOutputCol("CityDestIndex").setHandleInvalid("skip")
     //val stateDestIndexer = new StringIndexer().setInputCol("StateDest").setOutputCol("StateDestIndex").setHandleInvalid("skip")
 
+    //Make string one hot encoders for random forest
+    val originEnconder = new OneHotEncoderEstimator().setInputCols(Array("OriginIndex")).setOutputCols(Array("OriginIndexEncoded"))
+
+    //Make scaler for models
+    val scaler = new StandardScaler()
+      .setInputCol("features")
+      .setOutputCol("scaledFeatures")
+
+    //split data for training and testing
+    val split = df.randomSplit(Array(0.7, 0.3))
+    val training  = split(0)
+    val test = split(1)
+
+    //Linear regression model
+    println("Setting up linear regression model")
+
     //Makes array of column names
-    val colNames = Array(
+    val lrColNames = Array(
        "DepDelay"
       , "TaxiOut"
       , "DepTime_sin", "DepTime_cos"
@@ -139,17 +156,10 @@ object App {
       , "date"
     )
 
-    val split = df.randomSplit(Array(0.7, 0.3))
-    val training  = split(0)
-    val test = split(1)
-
-    val assembler = new VectorAssembler()
-      .setInputCols(colNames)
+    val lrAssembler = new VectorAssembler()
+      .setInputCols(lrColNames)
       .setOutputCol("features")
-
-    val scaler = new StandardScaler()
-      .setInputCol("features")
-      .setOutputCol("scaledFeatures")
+      .setHandleInvalid("skip")
 
     val lr = new LinearRegression()
       .setLabelCol("ArrDelay")
@@ -158,36 +168,100 @@ object App {
       .setRegParam(0.3)
       .setElasticNetParam(0.8)
 
-    val pipeline = new Pipeline()
+    val lrPipeline = new Pipeline()
       .setStages(Array(
         originIndexer,
-        assembler,
+        lrAssembler,
         scaler,
         lr))
 
 
     println("Training....")
-    val model = pipeline.fit(training)
+    val lrModel = lrPipeline.fit(training)
 
     /////////////////////////////////////////
     // Part III: Validating the model
 
     println("Testing.....")
 
-    val predRes = model.transform(test)
+    val lrPredRes = lrModel.transform(test)
 
-    predRes.show(15)
+    lrPredRes.show(15)
 
-    val regEval = new RegressionEvaluator()
+    val lrRegEval = new RegressionEvaluator()
       .setPredictionCol("prediction")
       .setLabelCol("ArrDelay")
 
-    println("R2: "+regEval.setMetricName("r2").evaluate(predRes))
-    println("MSE: "+regEval.setMetricName("mse").evaluate(predRes))
-    println("RMSE: "+regEval.setMetricName("rmse").evaluate(predRes))
+    println("Linear regression results")
+    println("R2: "+lrRegEval.setMetricName("r2").evaluate(lrPredRes))
+    println("MSE: "+lrRegEval.setMetricName("mse").evaluate(lrPredRes))
+    println("RMSE: "+lrRegEval.setMetricName("rmse").evaluate(lrPredRes))
 
-    val linearModel = model.stages(2).asInstanceOf[LinearRegressionModel]
+    val linearModel = lrModel.stages(3).asInstanceOf[LinearRegressionModel]
 
     println(s"Coefficients: ${linearModel.coefficients} Intercept: ${linearModel.intercept}")
+
+    //Random forest
+    println("Setting up random forest model")
+
+    //Makes array of column names
+    val rfColNames = Array(
+      "DepDelay"
+      , "TaxiOut"
+      , "DepTime_sin", "DepTime_cos"
+      , "DayOfWeek"
+      ,"OriginIndexEncoded"
+      , "date"
+    )
+
+    val rfAssembler = new VectorAssembler()
+      .setInputCols(rfColNames)
+      .setOutputCol("features")
+      .setHandleInvalid("skip")
+
+    // Set up params for model
+    val NumTrees = Seq(5,10,15)
+    val MaxBins = Seq(28,30,32)
+    val MaxDepth: Seq[Int] = Seq(10)
+
+    val rf = new RandomForestRegressor()
+      .setLabelCol("ArrDelay")
+      .setFeaturesCol("features")
+
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(rf.numTrees, NumTrees)
+      .addGrid(rf.maxDepth, MaxDepth)
+      .addGrid(rf.maxBins, MaxBins)
+      .build()
+
+    val rfPipeline = new Pipeline()
+      .setStages(Array(
+        originIndexer,
+        originEnconder,
+        rfAssembler,
+        scaler,
+        rf))
+
+    println("Training....")
+    val rfModel = rfPipeline.fit(training)
+
+    /////////////////////////////////////////
+    // Part III: Validating the model
+
+    println("Testing.....")
+
+    val rfPredRes = rfModel.transform(test)
+
+    rfPredRes.show(15)
+
+    val rfRegEval = new RegressionEvaluator()
+      .setPredictionCol("prediction")
+      .setLabelCol("ArrDelay")
+
+    println("Random forest results")
+    println("R2: "+rfRegEval.setMetricName("r2").evaluate(rfPredRes))
+    println("MSE: "+rfRegEval.setMetricName("mse").evaluate(rfPredRes))
+    println("RMSE: "+rfRegEval.setMetricName("rmse").evaluate(rfPredRes))
   }
 }
+
