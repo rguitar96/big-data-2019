@@ -415,6 +415,8 @@ df.stat.corr("ArrDelay","StateIndex")
     println("R2: "+rfRegEval.setMetricName("r2").evaluate(rfPredRes))
     println("MSE: "+rfRegEval.setMetricName("mse").evaluate(rfPredRes))
     println("RMSE: "+rfRegEval.setMetricName("rmse").evaluate(rfPredRes))
+
+    spark.stop()
   }
 }
 
