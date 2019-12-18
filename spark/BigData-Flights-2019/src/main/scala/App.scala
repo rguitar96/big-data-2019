@@ -26,7 +26,7 @@ object App {
       .format("csv")
       .option("inferSchema", "true")
       .option("header", "true")
-      .load("data/inputDf.csv")
+      .load("data/inputData.csv")
 
     var df = inputDf
       .drop("ArrTime", "ActualElapsedTime", "AirTime", "TaxiIn", "Diverted", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay", "CancellationCode")
