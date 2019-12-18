@@ -26,34 +26,161 @@ object App {
       .format("csv")
       .option("inferSchema", "true")
       .option("header", "true")
-      .load("data/2005_small.csv")
+      .load("data/inputDf.csv")
 
     var df = inputDf
       .drop("ArrTime", "ActualElapsedTime", "AirTime", "TaxiIn", "Diverted", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay", "CancellationCode")
+
+
+    /*Data exploration
+println("Let's see the summary statistics of the data!")
+df.describe().show()
+
+println("We have several NAs values :( . But how many?")
+df.groupBy("Year").count().show()
+df.filter(df("Year") === "NA").count()
+df.groupBy("Month").count().show()
+df.filter(df("Month") === "NA").count()
+df.groupBy("DayOfMonth").count().show()
+df.filter(df("DayOfMonth") === "NA").count()
+df.groupBy("DayOfWeek").count().show()
+df.filter(df("DayOfWeek") === "NA").count()
+df.groupBy("DepTime").count().show()
+df.filter(df("DepTime") === "NA").count()
+df.groupBy("CRSDepTime").count().show()
+df.filter(df("CRSDepTime") === "NA").count()
+df.groupBy("CRSArrTime").count().show()
+df.filter(df("CRSArrTime") === "NA").count()
+df.groupBy("UniqueCarrier").count().show()
+df.filter(df("UniqueCarrier") === "NA").count()
+df.groupBy("FlightNum").count().show()
+df.filter(df("FlightNum") === "NA").count()
+df.groupBy("TailNum").count().show()
+df.filter(df("TailNum") === "NA").count()
+df.groupBy("CRSElapsedTime").count().show()
+df.filter(df("CRSElapsedTime") === "NA").count()
+df.groupBy("ArrDelay").count().show()
+df.filter(df("ArrDelay") === "NA").count()
+df.groupBy("DepDelay").count().show()
+df.filter(df("DepDelay") === "NA").count()
+df.groupBy("Origin").count().show()
+df.filter(df("Origin") === "NA").count()
+df.groupBy("Dest").count().show()
+df.filter(df("Dest") === "NA").count()
+df.groupBy("Distance").count().show()
+df.filter(df("Distance") === "NA").count()
+df.groupBy("TaxiOut").count().show()
+df.filter(df("TaxiOut") === "NA").count()
+df.groupBy("Cancelled").count().show()
+df.filter(df("Cancelled") === "NA").count()
+df.groupBy("CancellationCode").count().show()
+df.filter(df("CancellationCode") === "NA").count()
+
+//Filter out NA values
+df = df.filter(df("Year") =!= "NA")
+df = df.filter(df("Month") =!= "NA")
+df = df.filter(df("DayOfMonth") =!= "NA")
+df = df.filter(df("DayOfWeek") =!= "NA")
+df = df.filter(df("DepTime") =!= "NA")
+df = df.filter(df("CRSDepTime") =!= "NA")
+df = df.filter(df("CRSArrTime") =!= "NA")
+df = df.filter(df("UniqueCarrier") =!= "NA")
+df = df.filter(df("FlightNum") =!= "NA")
+df = df.filter(df("TailNum") =!= "NA")
+df = df.filter(df("CRSElapsedTime") =!= "NA")
+df = df.filter(df("ArrDelay") =!= "NA")
+df = df.filter(df("DepDelay") =!= "NA")
+df = df.filter(df("Origin") =!= "NA")
+df = df.filter(df("Dest") =!= "NA")
+df = df.filter(df("Distance") =!= "NA")
+df = df.filter(df("TaxiOut") =!= "NA")
+
+
+//Filter out null values
+df = df.filter(df("Year").isNotNull)
+df = df.filter(df("Month").isNotNull)
+df = df.filter(df("DayOfMonth").isNotNull)
+df = df.filter(df("DayOfWeek").isNotNull)
+df = df.filter(df("DepTime").isNotNull)
+df = df.filter(df("CRSDepTime").isNotNull)
+df = df.filter(df("CRSArrTime").isNotNull)
+df = df.filter(df("UniqueCarrier").isNotNull)
+df = df.filter(df("FlightNum").isNotNull)
+df = df.filter(df("TailNum").isNotNull)
+df = df.filter(df("CRSElapsedTime").isNotNull)
+df = df.filter(df("ArrDelay").isNotNull)
+df = df.filter(df("DepDelay").isNotNull)
+df = df.filter(df("Origin").isNotNull)
+df = df.filter(df("Dest").isNotNull)
+df = df.filter(df("Distance").isNotNull)
+
+println("Getting supplementary data")
+
+//Get state and city of airports
+val airports = spark
+.read
+.format("csv")
+.option("header", "true")
+.load("sup_data/airports.csv")
+
+df = df.join(airports,
+df("Origin") === airports("iata"),
+"left")
+.drop("iata")
+.drop("airport")
+.drop("country")
+.drop("lat")
+.drop("long")
+.withColumnRenamed("city", "CityOrigion")
+.withColumnRenamed("state", "StateOrigion")
+
+df = df .join(airports,
+df("Dest") === airports("iata"),
+"left")
+.drop("iata")
+.drop("airport")
+.drop("country")
+.drop("lat")
+.drop("long")
+.withColumnRenamed("city", "CityDest")
+.withColumnRenamed("state", "StateDest")
+
+//Get plane features
+val planes = spark
+.read
+.format("csv")
+.option("header", "true")
+.load("sup_data/plane-data.csv")
+.withColumnRenamed("tailnum", "planeTailNum")
+.withColumnRenamed("year", "manufacturedYear")
+
+df = df .join(planes,
+df("TailNum") === planes("planeTailNum"),
+"left")
+.drop("planeTailNum")
+.drop("type")
+.drop("issue_date")
+.drop("status")
+.drop("engine_type")
+.withColumn("PlaneAge", col("Year") - col("manufacturedYear").cast(IntegerType) )
+.drop("manufacturedYear")
+
+df = df
+.select(floor(avg("PlaneAge")).alias("avg_PlaneAge"))
+.withColumn("avg_PlaneAge", when(col("avg_PlaneAge").isNull, 10) otherwise(col("avg_PlaneAge")))
+.crossJoin(df)
+.withColumn("PlaneAge",when(col("PlaneAge").isNull, col("avg_PlaneAge")) otherwise col("PlaneAge"))
+.drop(col("avg_PlaneAge"))
+*/
 
     println("Got data")
 
     //Let's see how many rows are in the data frame.
     println("Total number of elements before filtering: "+df.count())
 
-    //We remove the rows with missing values for the class (ArrDelay) since we can not used them for regression
-    // purposes. We also filter out the rows with NA values for DepTime, DepDelay and CRSElapsedTime. The rows with
-    // cancelled flies (Cancelled == 1) will also be eliminated. The latter match in number the rows with NA values for
-    // columns DepTime and DepDelay. This makes sense and, although with one filter should be enough, we will filter
-    // based on the three conditions to ensure that no NA values are left in the data.
-
-    //df = df
-      //   .filter($"ArrDelay" =!= "NA")
-//      .filter($"DepDelay" =!= "NA")
-//      .filter($"CRSElapsedTime" =!= "NA")
-//      .filter($"Cancelled" === 0)
-
     //Since we only have the flights that were not cancelled, we can get rid of the Cancelled field:
     df = df
       .drop("Cancelled")
-
-    // Let's see how many rows are left.
-    println("Total number of elements after filtering: "+df.count)
 
     //We will now change the data types of the appropriate fields from string to integer:
     df = df
@@ -61,10 +188,9 @@ object App {
       .withColumn("Month",col("Month").cast(IntegerType))
       .withColumn("DayOfMonth",col("DayOfMonth").cast(IntegerType))
       .withColumn("DayOfWeek",col("DayOfWeek").cast(IntegerType))
-      .withColumn("DepTime",col("DepTime").cast(IntegerType))
-      .withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
-      .withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
-      .withColumn("DepTime",col("DepTime").cast(IntegerType))
+      //.withColumn("DepTime",col("DepTime").cast(IntegerType))
+      //.withColumn("CRSDepTime",col("CRSDepTime").cast(IntegerType))
+      //.withColumn("CRSArrTime",col("CRSArrTime").cast(IntegerType))
       .withColumn("CRSElapsedTime",col("CRSElapsedTime").cast(IntegerType))
       .withColumn("ArrDelay",col("ArrDelay").cast(DoubleType))
       .withColumn("DepDelay",col("DepDelay").cast(IntegerType))
@@ -72,6 +198,7 @@ object App {
       .withColumn("TaxiOut",col("TaxiOut").cast(IntegerType))
       .withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
+    // We cannot predict results if the response variable is null
     df = df.filter(col("ArrDelay").isNotNull)
 
     // ADDING NEW COLUMNS
@@ -86,11 +213,6 @@ object App {
 
     // TRANSFORMING DATA
     println("Transforming data")
-
-
-    df = df.withColumn("DepTime",when(col("DepTime") < 1000, 1200) otherwise col("DepTime"))
-    df = df.withColumn("CRSDepTime",when(col("CRSDepTime") < 1000, 1200) otherwise col("CRSDepTime"))
-    df = df.withColumn("CRSArrTime",when(col("CRSArrTime") < 1000, 1200) otherwise col("CRSArrTime"))
 
     // Transform all cyclic data into sin/cos
     df = df
@@ -109,15 +231,55 @@ object App {
       //.withColumn("DayOfMonth_sin", sin(col("DayOfMonth") * 2 * Math.PI / 31))
       //.withColumn("DayOfMonth_cos", cos(col("DayOfMonth") * 2 * Math.PI / 31))
       .drop("DayOfMonth")
-      //.withColumn("DayOfWeek_sin", sin(col("DayOfWeek") * 2 * Math.PI / 7))
+      .withColumn("DayOfWeek_sin", sin(col("DayOfWeek") * 2 * Math.PI / 7))
       //.withColumn("DayOfWeek_cos", cos(col("DayOfWeek") * 2 * Math.PI / 7))
-      //.drop("DayOfWeek")
+      .drop("DayOfWeek")
 
     df = df.withColumn("TaxiOut",when(col("TaxiOut").isNull, 15) otherwise col("TaxiOut"))
 
     println("Total number of elements before training: "+df.count)
 
     df.show(15)
+
+
+    /*Correlations
+df.stat.corr("ArrDelay","Year")
+df.stat.corr("ArrDelay","Month")
+df.stat.corr("ArrDelay","DayOfMonth")
+df.stat.corr("ArrDelay","DayOfWeek")
+df.stat.corr("ArrDelay","DepTime")
+df.stat.corr("ArrDelay","CRSDepTime")
+df.stat.corr("ArrDelay","CRSArrTime")
+df.stat.corr("ArrDelay","UniqueCarrier")
+df.stat.corr("ArrDelay","FlightNum")
+df.stat.corr("ArrDelay","TailNum")
+df.stat.corr("ArrDelay","CRSElapsedTime")
+df.stat.corr("ArrDelay","DepDelay")
+df.stat.corr("ArrDelay","Origin")
+df.stat.corr("ArrDelay","Dest")
+df.stat.corr("ArrDelay","Distance")
+df.stat.corr("ArrDelay","TaxiOut")
+df.stat.corr("ArrDelay","Date")
+df.stat.corr("ArrDelay","isWeekend")
+df.stat.corr("ArrDelay","DepTime_sin")
+df.stat.corr("ArrDelay","DepTime_cos")
+df.stat.corr("ArrDelay","CRSDepTime_sin")
+df.stat.corr("ArrDelay","CRSDepTime_cos")
+df.stat.corr("ArrDelay","CRSArrTime_sin")
+df.stat.corr("ArrDelay","CRSArrTime_cos")
+df.stat.corr("ArrDelay","Month_sin")
+df.stat.corr("ArrDelay","Month_cos")
+df.stat.corr("ArrDelay","DayOfMonth_sin")
+df.stat.corr("ArrDelay","DayOfMonth_cos")
+df.stat.corr("ArrDelay","DayOfWeek_sin")
+df.stat.corr("ArrDelay","DayOfWeek_cos")
+df.stat.corr("ArrDelay","UniqueCarrierIndex")
+df.stat.corr("ArrDelay","OriginIndex")
+df.stat.corr("ArrDelay","DestIndex")
+df.stat.corr("ArrDelay","CityIndex")
+df.stat.corr("ArrDelay","StateIndex")
+*/
+
 
     /////////////////////////////////////////
     // Part II: Creating the model
@@ -151,7 +313,7 @@ object App {
        "DepDelay"
       , "TaxiOut"
       , "DepTime_sin", "DepTime_cos"
-      , "DayOfWeek"
+      , "DayOfWeek_sin"
       , "OriginIndex"
       , "date"
     )
@@ -186,8 +348,6 @@ object App {
 
     val lrPredRes = lrModel.transform(test)
 
-    lrPredRes.show(15)
-
     val lrRegEval = new RegressionEvaluator()
       .setPredictionCol("prediction")
       .setLabelCol("ArrDelay")
@@ -209,7 +369,7 @@ object App {
       "DepDelay"
       , "TaxiOut"
       , "DepTime_sin", "DepTime_cos"
-      , "DayOfWeek"
+      , "DayOfWeek_sin"
       ,"OriginIndexEncoded"
       , "date"
     )
@@ -219,20 +379,14 @@ object App {
       .setOutputCol("features")
       .setHandleInvalid("skip")
 
-    // Set up params for model
-    val NumTrees = Seq(5,10,15)
-    val MaxBins = Seq(28,30,32)
-    val MaxDepth: Seq[Int] = Seq(10)
 
     val rf = new RandomForestRegressor()
       .setLabelCol("ArrDelay")
       .setFeaturesCol("features")
+      .setNumTrees(8)
+      .setMaxBins(28)
+      .setMaxDepth(8)
 
-    val paramGrid = new ParamGridBuilder()
-      .addGrid(rf.numTrees, NumTrees)
-      .addGrid(rf.maxDepth, MaxDepth)
-      .addGrid(rf.maxBins, MaxBins)
-      .build()
 
     val rfPipeline = new Pipeline()
       .setStages(Array(
@@ -252,7 +406,6 @@ object App {
 
     val rfPredRes = rfModel.transform(test)
 
-    rfPredRes.show(15)
 
     val rfRegEval = new RegressionEvaluator()
       .setPredictionCol("prediction")
