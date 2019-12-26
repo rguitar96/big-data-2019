@@ -1,0 +1,29 @@
+```{r}
+library(tidyjson)
+```
+
+```{r}
+#document <- fromJSON(txt="tweets_small/0.txt")
+
+files <- list.files(path="tweets_test", pattern="*.txt", full.names=TRUE, recursive=FALSE)
+documents <- list()
+
+for (file in files) {
+  str <- readChar(file, file.info(file)$size)
+  documents <- c(documents, str)
+}
+```
+
+```{r}
+tweets <- documents %>% as.character %>% as.tbl_json %>%  spread_all
+```
+
+```{r}
+View(tweets)
+```
+
+```{r}
+texts <- tweets$text
+texts[535]
+```
+
