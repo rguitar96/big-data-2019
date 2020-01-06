@@ -5,6 +5,7 @@
 #   pip install textblob
 
 import json
+import codecs
 from tweepy import Stream
 from tweepy import OAuthHandler
 from tweepy.streaming import StreamListener
@@ -23,23 +24,21 @@ region = [-11.949371, 35.650688, 4.354341, 44.144845]
 
 class listener(StreamListener):
     def __init__(self):
+        super(listener,self).__init__()
         self.i = 0
-    def on_data(self, data):
-        # Data returned in JSON
+    def on_status(self, status):
         try:
-            decoded = json.loads(data)
+            #decoded = json.loads(status)
 
-            file =  open('tweets/%i.txt' % self.i, 'a')
+            file =  codecs.open('tweets/%i.txt' % self.i, 'a', "utf-8")
             self.i = self.i + 1
-            file.write(data)
+            file.write(str(status._json))
         except Exception as e:
             print(e)
             return True
-
-        return True
-
-    def on_error(self, status):
-        print(status)
+    def on_error(self, status_code):
+        print(status_code)
+        return False
 
 if __name__ == '__main__':
     print('Stream has began...')
