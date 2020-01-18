@@ -32,7 +32,7 @@ class listener(StreamListener):
 
             file =  codecs.open('tweets/%i.txt' % self.i, 'a', "utf-8")
             self.i = self.i + 1
-            file.write(str(status._json))
+            file.write(str(json.dumps(status._json)))
         except Exception as e:
             print(e)
             return True

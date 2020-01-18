@@ -9,13 +9,17 @@ files <- list.files(path="tweets_test", pattern="*.txt", full.names=TRUE, recurs
 documents <- list()
 
 for (file in files) {
-  str <- readChar(file, file.info(file)$size)
+  str <- gsub("“", "", readChar(file, file.info(file)$size))
+  str <- gsub("”", "", str)
+  str <- gsub("u201d", "\"", str)
+  str <- gsub("u201c", "\"", str)
+  
   documents <- c(documents, str)
 }
 ```
 
 ```{r}
-tweets <- documents %>% as.character %>% as.tbl_json %>%  spread_all
+tweets <- documents %>% as.character %>% as.tbl_json %>% spread_all
 ```
 
 ```{r}
