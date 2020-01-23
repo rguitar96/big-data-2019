@@ -10,10 +10,10 @@ from tweepy import Stream
 from tweepy import OAuthHandler
 from tweepy.streaming import StreamListener
 
-ckey = 'ckey'
-csecret = 'csecret'
-atoken = 'atoken'
-asecret = 'asecret'
+ckey = 'InG5mq465tfbaWKJZDWdCsU7h'
+csecret = 'y4ZTuDM6qBNbKPa4658Ep1LYatYnTK0zZi18oWws6PfN62HWjo'
+atoken = '540079107-a6HSC1Ipm9LhagMSTiQyDpoEQjuq8ZG420dOUMC5'
+asecret = 'zd1T13XKQ7DhVuEqBx540Y1SGnbkfu0NHdiWC1L16NOHY'
 
 # First pair (longitude, latitude) indicates the lower left or southwest corner
 # Second pair indicates the upper right or northeast corner

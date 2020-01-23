@@ -1,11 +1,13 @@
 ```{r}
 library(tidyjson)
+library(ggplot2)
+library(tidyr)
 ```
 
 ```{r}
 #document <- fromJSON(txt="tweets_small/0.txt")
 
-files <- list.files(path="tweets_test", pattern="*.txt", full.names=TRUE, recursive=FALSE)
+files <- list.files(path="tweets", pattern="*.txt", full.names=TRUE, recursive=FALSE)
 documents <- list()
 
 for (file in files) {
@@ -29,5 +31,154 @@ View(tweets)
 ```{r}
 texts <- tweets$text
 texts[535]
+```
+
+```{r}
+ggplot(tweets, aes(x=forcats::fct_infreq(lang)), stat = "count") + 
+  geom_bar(color="black", fill="white")
+```
+
+```{r}
+min(tweets$user.followers_count)
+mean(tweets$user.followers_count)
+max(tweets$user.followers_count)
+ggplot(tweets, aes(x=user.followers_count)) + 
+  geom_density(color="black", fill="white")
+ggplot(tweets, aes(x=user.friends_count)) + 
+  geom_histogram(color="black", fill="white")
+```
+
+
+```{r}
+tweets_geo <- tweets[!is.na(tweets$geo),]
+```
+
+```{r}
+nrow(tweets_geo)
+```
+
+
+```{r}
+library(tm)
+library(wordcloud)
+library(RWeka)
+library(reshape2)
+```
+
+```{r}
+corpus = Corpus(VectorSource(tweets$text)) 
+```
+
+```{r}
+length(corpus)
+```
+
+```{r}
+tdm = TermDocumentMatrix(corpus)
+freq=rowSums(as.matrix(tdm))
+```
+
+```{r}
+stopwords <- c("a", "al", "algo", "algunas", "algunos", "ante", "antes", "como", "con", "contra", "cual", "cuando", "de", "del", "desde", "donde", "durante", "e", "el", "ella", "ellas", "ellos", "en", "entre", "era", "erais", "eran", "eras", "eres", "es", "esa", "esas", "ese", "eso", "esos", "esta", "estaba", "estabais", "estaban", "estabas", "estad", "estada", "estadas", "estado", "estados", "estamos", "estando", "estar", "estaremos", "estará", "estarán", "estarás", "estaré", "estaréis", "estaría", "estaríais", "estaríamos", "estarían", "estarías", "estas", "este", "estemos", "esto", "estos", "estoy", "estuve", "estuviera", "estuvierais", "estuvieran", "estuvieras", "estuvieron", "estuviese", "estuvieseis", "estuviesen", "estuvieses", "estuvimos", "estuviste", "estuvisteis", "estuviéramos", "estuviésemos", "estuvo", "está", "estábamos", "estáis", "están", "estás", "esté", "estéis", "estén", "estés", "fue", "fuera", "fuerais", "fueran", "fueras", "fueron", "fuese", "fueseis", "fuesen", "fueses", "fui", "fuimos", "fuiste", "fuisteis", "fuéramos", "fuésemos", "ha", "habida", "habidas", "habido", "habidos", "habiendo", "habremos", "habrá", "habrán", "habrás", "habré", "habréis", "habría", "habríais", "habríamos", "habrían", "habrías", "habéis", "había", "habíais", "habíamos", "habían", "habías", "han", "has", "hasta", "hay", "haya", "hayamos", "hayan", "hayas", "hayáis", "he", "hemos", "hube", "hubiera", "hubierais", "hubieran", "hubieras", "hubieron", "hubiese", "hubieseis", "hubiesen", "hubieses", "hubimos", "hubiste", "hubisteis", "hubiéramos", "hubiésemos", "hubo", "la", "las", "le", "les", "lo", "los", "me", "mi", "mis", "mucho", "muchos", "muy", "más", "mí", "mía", "mías", "mío", "míos", "nada", "ni", "no", "nos", "nosotras", "nosotros", "nuestra", "nuestras", "nuestro", "nuestros", "o", "os", "otra", "otras", "otro", "otros", "para", "pero", "poco", "por", "porque", "que", "quien", "quienes", "qué", "se", "sea", "seamos", "sean", "seas", "seremos", "será", "serán", "serás", "seré", "seréis", "sería", "seríais", "seríamos", "serían", "serías", "seáis", "sido", "siendo", "sin", "sobre", "sois", "somos", "son", "soy", "su", "sus", "suya", "suyas", "suyo", "suyos", "sí", "también", "tanto", "te", "tendremos", "tendrá", "tendrán", "tendrás", "tendré", "tendréis", "tendría", "tendríais", "tendríamos", "tendrían", "tendrías", "tened", "tenemos", "tenga", "tengamos", "tengan", "tengas", "tengo", "tengáis", "tenida", "tenidas", "tenido", "tenidos", "teniendo", "tenéis", "tenía", "teníais", "teníamos", "tenían", "tenías", "ti", "tiene", "tienen", "tienes", "todo", "todos", "tu", "tus", "tuve", "tuviera", "tuvierais", "tuvieran", "tuvieras", "tuvieron", "tuviese", "tuvieseis", "tuviesen", "tuvieses", "tuvimos", "tuviste", "tuvisteis", "tuviéramos", "tuviésemos", "tuvo", "tuya", "tuyas", "tuyo", "tuyos", "tú", "un", "una", "uno", "unos", "vosotras", "vosotros", "vuestra", "vuestras", "vuestro", "vuestros", "y", "ya", "yo", "él", "éramos")
+stopwords <- c(stopwords, tm::stopwords("spanish"))
+tdm = TermDocumentMatrix(corpus,
+                         control=list(stopwords = stopwords,
+                                      removePunctuation = T, 
+                                      removeNumbers = T,
+                                      stemming = T))
+freq=rowSums(as.matrix(tdm))
+```
+
+
+```{r}
+pal=brewer.pal(8,"Blues")
+pal=pal[-(1:3)]
+word.cloud=wordcloud(words=names(freq), freq=freq,
+                     min.freq=75, random.order=F, colors = pal)
+```
+
+```{r}
+corpus.ngrams = VCorpus(VectorSource(tweets$text))
+tdm.unigram = TermDocumentMatrix(corpus.ngrams,
+                                control=list(stopwords = stopwords,
+                                removePunctuation = T, 
+                                removeNumbers = T))
+
+corpus.ngrams = tm_map(corpus.ngrams,removeWords,stopwords)
+corpus.ngrams = tm_map(corpus.ngrams,removePunctuation)
+corpus.ngrams = tm_map(corpus.ngrams,removeNumbers)
+```
+
+```{r}
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+tdm.bigram = TermDocumentMatrix(corpus.ngrams,
+                                control = list (tokenize = BigramTokenizer))
+```
+
+
+```{r}
+freq = sort(rowSums(as.matrix(tdm.bigram)),decreasing = TRUE)
+freq.df = data.frame(word=names(freq), freq=freq)
+```
+
+
+
+```{r}
+wordcloud(freq.df$word,freq.df$freq,max.words=75,scale=c(3,.1),random.order = F, colors=pal)
+```
+
+```{r}
+tweets[1,]$created_at
+tweets[1,]$timestamp_ms
+
+tweets$posix_timestamp <- as.POSIXct(as.numeric(tweets$timestamp_ms)/1000, origin="1970-01-01")
+
+ggplot(data=tweets, aes(x=tweets$posix_timestamp)) + 
+  geom_histogram(color="black", fill="white")
+ggplot(data=tweets, aes(x=tweets$posix_timestamp)) + 
+  geom_histogram(color="black", fill="white") +
+  coord_polar()
+```
+
+
+```{r}
+tweets_sensitive <- tweets[!is.na(tweets$possibly_sensitive),]
+nrow(tweets_sensitive)
+```
+
+
+```{r}
+tweets_en <- tweets[tweets$lang=="en",]
+```
+
+
+```{r}
+tweets_en %>%
+  inner_join(tweets_en_joy) %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+library(SentimentAnalysis)
+```
+
+
+```{r}
+corpus_en = Corpus(VectorSource(tweets_en$text)) 
+
+tdm_en <- DocumentTermMatrix(corpus_en)
+
+sent <- analyzeSentiment(tdm_en, language = "english")
+sent <- as.data.frame(sent)
+head(sent)
+summary(sent$SentimentGI)
+
+```
+
+```{r}
+sent[sent$SentimentGI!=0,]
+ggplot(sent, aes(x=SentimentGI)) + geom_density(kernel = "gaussian")
+ggplot(sent, aes(x=NegativityGI)) + geom_density(kernel = "gaussian")
+ggplot(sent, aes(x=PositivityGI)) + geom_density(kernel = "gaussian")
 ```
 
