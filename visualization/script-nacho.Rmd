@@ -1,0 +1,24 @@
+---
+title: "script-nacho"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Loading libraries
+```{r}
+library("readxl")
+```
+
+### Loading data
+```{r}
+data<-read_excel(path = "./data//Spain-and-Portugal-Geolocated-tweets-free-dataset-Followthehashtag/export_dashboard.xlsx",
+           sheet = "Stream")
+
+summary(data) # Every field is of character type
+is.na(data) # There are NAs 
+```
+
