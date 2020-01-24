@@ -1,0 +1,57 @@
+---
+title: "script-nacho"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Loading libraries
+```{r}
+library("readxl")
+library("tidyverse")
+```
+
+### Loading data
+```{r}
+data<-read_excel(path = "./data//Spain-and-Portugal-Geolocated-tweets-free-dataset-Followthehashtag/export_dashboard.xlsx",
+           sheet = "Stream")
+```
+
+### Data inspection
+```{r}
+summary(data) # Every field is of character type
+is.na(data) # There are NAs 
+```
+
+### Dropping unnecesary columns
+```{r}
+data<-select(data,-c("Tweet Id","User Name","Bio","Place (as appears on Bio)","Profile picture","Listed","Tweet Url"))
+```
+
+### Removing tweets without coordinates
+```{r}
+data<-data%>%drop_na(Latitude, Longitude)
+```
+
+
+### NA for Favs and RTs are changed to 0
+```{r}
+data$Favs[is.na(data$Favs)] <- 0
+data$RTs[is.na(data$RTs)] <- 0
+```
+### Saving the clean dataset
+```{r}
+write.csv(data, file = "./data/clean-twitter-data.csv")
+```
+
+
+
+
+
+
+
+
+
