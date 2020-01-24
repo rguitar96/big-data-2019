@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+data <- read.csv("data/clean-twitter-data.csv")
+```
+
+```{r}
+library(leaflet)
+library(dplyr)
+library(RColorBrewer)
+library(leaflet.extras)
+```
+
+
+```{r}
+leaflet(data) %>%
+  setView(lng = -3.7, lat = 40.4, zoom = 06) %>%
+  addTiles() %>%
+  addPolygons(weight = 2,
+              opacity = 0.2,
+              color = "#FD8D3C",
+              dashArray = "3",
+              fillOpacity = 0.6,
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                dashArray = "",
+                fillOpacity = 1,
+                bringToFront = TRUE),
+              label = labels,
+              labelOptions = labelOptions(
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto"))
+```
+
+```{r}
+library("KernSmooth")
+library("data.table")
+library("sp")
+library("rgdal")
+library("raster")
+```
+
+```{r}
+data <- data %>% filter(Latitude < 44) %>% filter(Latitude > 35) %>% 
+  filter(Longitude > -12) %>% filter(Longitude < 7)
+dat <- data.table(data)
+#dat <- dat %>% filter(Longitude > -10)
+
+kde <- bkde2D(dat[ , list(Longitude, Latitude)],
+              bandwidth=c(.0045, .0068), gridsize = c(1000,1000))
+
+CL <- contourLines(kde$x1 , kde$x2 , kde$fhat)
+
+
+LEVS <- as.factor(sapply(CL, `[[`, "level"))
+NLEV <- length(levels(LEVS))
+
+pgons <- lapply(1:length(CL), function(i)
+    Polygons(list(Polygon(cbind(CL[[i]]$x, CL[[i]]$y))), ID=i))
+spgons = SpatialPolygons(pgons)
+```
+
+
+
+```{r}
+leaflet(spgons) %>% addTiles() %>% 
+  addProviderTiles(providers$CartoDB.DarkMatter) %>% 
+    addPolygons(color = heat.colors(NLEV, NULL)[LEVS])
+
+#leaflet(spgons) %>% addTiles() %>%
+#    addPolygons(color = heat.colors(NLEV, NULL)[LEVS]) %>%
+#    addCircles(lng = dat$longitude, lat = dat$latitude,
+#               radius = .5, opacity = .2, col = "blue")
+```
+
+
+```{r}
+KernelDensityRaster <- raster(list(x=kde$x1 ,y=kde$x2 ,z = kde$fhat))
+palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values)
+
+KernelDensityRaster@data@values[which(KernelDensityRaster@data@values < 0.0000000000001)] <- NA
+palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values, na.color = "transparent")
+
+```
+
+```{r}
+leaflet() %>% addTiles() %>% 
+  addProviderTiles(providers$CartoDB.DarkMatter) %>% 
+  addRasterImage(KernelDensityRaster, 
+                 colors = palRaster, 
+                 opacity = .8) %>%
+  addLegend(pal = palRaster, 
+            values = KernelDensityRaster@data@values, 
+            title = "Kernel Density of Points")
+```
+
