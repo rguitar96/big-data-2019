@@ -83,7 +83,7 @@ leaflet(spgons) %>% addTiles() %>%
 KernelDensityRaster <- raster(list(x=kde$x1 ,y=kde$x2 ,z = kde$fhat))
 palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values)
 
-KernelDensityRaster@data@values[which(KernelDensityRaster@data@values < 0.0000000000001)] <- NA
+KernelDensityRaster@data@values[which(KernelDensityRaster@data@values < 0.001)] <- NA
 palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values, na.color = "transparent")
 
 ```
