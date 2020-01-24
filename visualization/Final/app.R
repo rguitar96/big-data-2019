@@ -145,7 +145,7 @@ server <- function(input, output) {
     KernelDensityRaster <- raster(list(x=kde$x1 ,y=kde$x2 ,z = kde$fhat))
     KernelDensityRaster@data@values[which(KernelDensityRaster@data@values < 0.001)] <- NA
     
-    palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values, na.color = "transparent")
+    palRaster <- colorNumeric(viridis::viridis(n = 500), domain = KernelDensityRaster@data@values, na.color = "transparent")
     
     leaflet() %>% addTiles() %>% 
       addProviderTiles(providers$CartoDB.DarkMatter) %>% 

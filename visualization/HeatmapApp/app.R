@@ -64,7 +64,7 @@ ui <- dashboardPage(
     tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
     leafletOutput("map"),
     
-  )
+      )
 )
 
 
@@ -88,8 +88,7 @@ server <- function(input, output) {
     
     KernelDensityRaster <- raster(list(x=kde$x1 ,y=kde$x2 ,z = kde$fhat))
     KernelDensityRaster@data@values[which(KernelDensityRaster@data@values < 0.001)] <- NA
-    
-    palRaster <- colorNumeric("Spectral", domain = KernelDensityRaster@data@values, na.color = "transparent")
+    palRaster <- colorNumeric(palette = viridis::viridis(n = 500), domain = KernelDensityRaster@data@values, na.color = "transparent")
     
     leaflet() %>% addTiles() %>% 
       addProviderTiles(providers$CartoDB.DarkMatter) %>% 
