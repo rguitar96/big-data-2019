@@ -260,7 +260,7 @@ server <- function(input, output) {
     ggplot(data, aes(x=word, y=freq)) +
       geom_bar(stat="identity", fill = "#00AFBB") +
       theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-      labs(x = "HashTag", y = "Number of uses", title = "Top 10 HashTags")
+      labs(x = "", y = "Number of uses", title = "Top 10 HashTags")
   })
 }
 
