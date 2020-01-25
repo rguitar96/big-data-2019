@@ -21,6 +21,7 @@ library("plotly")
 
 load(".RData")
 
+#Dataframe of all languages and their associated ISO codes ----------------
 languages = data.frame(
   name = c("Spanish",
            "English",
@@ -49,22 +50,19 @@ languages = data.frame(
            "ru", 
            "sv"))
 
+#Plot of tweet time series ---------------------
 ggplot(data = time.series, aes(x = Time, y = Tweets, group = 1))+
   geom_line(color = "#00AFBB", size = 0.1)+
-  labs(x = "Time", y = "Number of tweets", title = "Number of tweets posted at a given time")
+  labs(x = "Date", y = "Number of tweets", title = "Number of tweets posted at a given date")
 
-
-#Using "memoise" to automatically cache the results
-getTermMatrix <- memoise(function(langName, startDate, endDate) {
+#Method to perfom word frequency counting for generating the word cloud -----------------
+getTermMatrix <- memoise(function(langName, date) {
   
   lang = languages %>% filter(name == langName)
   
-  
   textAll = unlist(data %>%
                      filter(Tweet.language..ISO.639.1. == lang$code) %>% 
-                     filter(Date == startDate) %>%
-                     #filter(Date >= startDate) %>%
-                     #filter(Date <= endDate) %>%
+                     filter(Date == date) %>%
                      dplyr::select(HashTags), recursive = FALSE)
   
   text = (textAll[lapply(textAll, length)>0])
@@ -96,76 +94,85 @@ getTermMatrix <- memoise(function(langName, startDate, endDate) {
   d <- data.frame(word = names(v),freq=v)
 })
 
-
 #INTERFACE ------------------------------------------
 ui <- navbarPage(
-      "Twitter Data Explore",
-      #HEAT MAP ===========================================
-          tabPanel("Where...",
-            sidebarLayout(
-              sidebarPanel(
-                textInput("wordFilter", "Filter by word: ", value = ""),
-                selectInput("lang", "Choose a language:",
-                            choices = languages$name),
-                sliderInput("opacity", label = "Opacity",
-                            min = 0, max = 1,
-                            value = 0.8),
-                sliderInput("gridSize", label = "Grid Size",
-                            min = 1, max = 2000,
-                            value = 100),
-                sliderInput("bandwidth", label = "Bandwidth",
-                            min = 0.000001, max = 0.5,
-                            value = 0.001),
-                sliderInput("dateSlider", label = h3("Date"),
-                            min = min(data$Date), max = max(data$Date),
-                            value = c(min(data$Date),max(data$Date))),
-              ),
-              mainPanel(
-                leafletOutput("map") 
-              )
-            )
-          ),
-      #Time Series ===========================================
-     tabPanel("When...",
-          sidebarLayout(
-            sidebarPanel(
-              helpText("Select a time interval to examine."),
-              sliderInput("slider1", label = h3("Date"),
-                          min = min(time.series$Date), max = max(time.series$Date),
-                          value = c(min(time.series$Date),max(time.series$Date)))
-            ),
-            mainPanel(
-              plotlyOutput("series")
-            )
-            
-          )
-        ),
-      #Word Cloud ===========================================
-        tabPanel("What...",
-          sidebarPanel(
-            selectInput("lang", "Choose a language:",
-                        choices = languages$name),
-            sliderInput("dateSlider", label = h3("Date"),
-                        min = min(data$Date), max = max(data$Date),
-                        value = min(data$Date)
-            ),
-            actionButton("update", "Change")
-          ),
-          
-          mainPanel(
-            wordcloud2Output("cloud")
-          )
-        )
-    )
-  
+  "Twitter Data Explore",
+  #HEAT MAP ===========================================
+  tabPanel("Where?",
+           titlePanel("Explore where people are tweeting from"),
+           br(),
+           sidebarLayout(
+             sidebarPanel(
+               textInput("wordFilter", "Filter by word: ", value = ""),
+               selectInput("mapLang", "Choose a language:",
+                           choices = languages$name),
+               sliderInput("opacity", label = "Opacity",
+                           min = 0, max = 1,
+                           value = 0.8),
+               sliderInput("gridSize", label = "Grid Size",
+                           min = 1, max = 2000,
+                           value = 100),
+               sliderInput("bandwidth", label = "Bandwidth",
+                           min = 0.000001, max = 0.5,
+                           value = 0.001),
+               sliderInput("mapDateSlider", label = h3("Date"),
+                           min = min(data$Date), max = max(data$Date),
+                           value = c(min(data$Date),max(data$Date))),
+             ),
+             mainPanel(
+               leafletOutput("map") 
+             )
+           )
+  ),
+  #Time Series ===========================================
+  tabPanel("When?",
+           titlePanel("Explore when people are tweeting"),
+           br(),
+           sidebarLayout(
+             sidebarPanel(
+               helpText("Select a time interval to examine."),
+               sliderInput("seriesDateSlider", label = h3("Date"),
+                           min = min(time.series$Date), max = max(time.series$Date),
+                           value = c(min(time.series$Date),max(time.series$Date)))
+             ),
+             mainPanel(
+               plotlyOutput("series")
+             )
+             
+           )
+  ),
+  #Word Cloud ===========================================
+  tabPanel("What?",
+           titlePanel("Explore what people are tweeting about"),
+           br(),
+           sidebarPanel(
+             selectInput("cloudLang", "Choose a language:",
+                         choices = languages$name),
+             selectInput("cloudDate", "Choose a date:",
+                         choices = c("2016-04-14", "2016-04-15","2016-04-16","2016-04-17", "2016-04-18","2016-04-19", 
+                                     "2016-04-20","2016-04-21","2016-04-22")),
+             actionButton("update", "Change")
+           ),
+           
+           mainPanel(
+             wordcloud2Output("cloud", width = "100%", height = "400px"),
+             br(),
+             br(),
+             plotlyOutput("barplot")
+           )
+  )
+)
+
+
+
+
 
 
 #SERVER ------------------------------------------
 server <- function(input, output) {
-  
   # HEATMAP  ===========================================
   output$map <- renderLeaflet({
-    lang = languages %>% filter(name == input$lang)
+    lang = languages %>% filter(name == input$mapLang)
     
     dat <- data %>% 
       filter(Latitude < 44) %>% 
@@ -173,8 +180,8 @@ server <- function(input, output) {
       filter(Longitude > -12) %>% 
       filter(Longitude < 7) %>% 
       filter(Tweet.language..ISO.639.1. == lang$code) %>% 
-      filter(Date >= input$dateSlider[1]) %>%
-      filter(Date <= input$dateSlider[2]) %>% 
+      filter(Date >= input$mapDateSlider[1]) %>%
+      filter(Date <= input$mapDateSlider[2]) %>% 
       filter(grepl(tolower(input$wordFilter),tolower(Tweet.content)))
     
     dat <- data.table(dat)
@@ -205,8 +212,8 @@ server <- function(input, output) {
   
   # TIME SERIES  ========================================
   get.data <- reactive({
-    min<-as.Date(input$slider1[1])
-    max<-as.Date(input$slider1[2])
+    min<-as.Date(input$seriesDateSlider[1])
+    max<-as.Date(input$seriesDateSlider[2])
     
     time.series<-time.series%>%filter(Date>=min & Date<=max)
     
@@ -231,16 +238,31 @@ server <- function(input, output) {
     isolate({
       withProgress({
         setProgress(message = "Processing corpus...")
-        getTermMatrix(input$lang, input$dateSlider[1], input$dateSlider[2])
+        words<-getTermMatrix(input$cloudLang, input$cloudDate)
+        return(words)
       })
     })
   })
   
   
   output$cloud <- renderWordcloud2({
-    wordcloud2(data=terms(), size = 0.7, shape = 'pentagon')
+    data=terms()
+    wordcloud2(data[1:40,],
+               size = 0.7, shape = 'pentagon')
+  })
+  
+  output$barplot <- renderPlotly({
+    data=terms()
+    data<-data[1:10,]
+    # Factor levels in decreasing order
+    data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
+    
+    ggplot(data, aes(x=word, y=freq)) +
+      geom_bar(stat="identity", fill = "#00AFBB") +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+      labs(x = "HashTag", y = "Number of uses", title = "Top 10 HashTags")
   })
 }
 
-
+#RUN APP ------------------------------------------
 shinyApp(ui = ui, server = server)
