@@ -1,0 +1,13 @@
+name: BD_E2_TD
+title: BD_E2_TD
+username:
+account: dburrell
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1703789
+bundleId: 2753043
+url: https://dburrell.shinyapps.io/BD_E2_TD/
+when: 1579976807.83387
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: clean-twitter-data.csv
