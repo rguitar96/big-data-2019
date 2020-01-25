@@ -14,6 +14,8 @@ library(wordcloud2)
 library(stopwords)
 library(memoise)
 library(raster)
+library(ggplot2)
+library("plotly")
 
 languages = data.frame(
   name = c("Spanish",
@@ -48,6 +50,22 @@ data <- read.csv("../data/clean-twitter-data.csv", fileEncoding = "latin1")
 data$Date <- as.Date(data$Date)
 data$HashTags = regmatches(data$Tweet.content, gregexpr("#(\\d|\\w)+", data$Tweet.content))
 
+#Creating a column that joins the date and time.
+data<-mutate(data, times = paste(Date, Hour))
+
+#Counting the number of tweets per timestamp.
+time.series<-plyr::count(dplyr::select(data, c(times, Date)))
+times<-(time.series$times)
+time.format<- "%Y-%m-%d %H:%M"
+timestamp.formatted <-(as.POSIXct(times, format=time.format)) 
+time.series$times<- timestamp.formatted
+time.series$Date<- as.Date(time.series$Date)
+
+names(time.series) <- c("Time", "Date", "Tweets")
+
+ggplot(data = time.series, aes(x = Time, y = Tweets, group = 1))+
+  geom_line(color = "#00AFBB", size = 0.1)+
+  labs(x = "Time", y = "Number of tweets", title = "Number of tweets posted at a given time")
 
 
 #Using "memoise" to automatically cache the results
@@ -93,51 +111,73 @@ getTermMatrix <- memoise(function(langName, startDate, endDate) {
 })
 
 
-
-ui <- dashboardPage(
+#INTERFACE ------------------------------------------
+ui <- navbarPage(
+      "Twitter Data Explore",
+      #HEAT MAP ===========================================
+          tabPanel("Where...",
+            sidebarLayout(
+              sidebarPanel(
+                textInput("wordFilter", "Filter by word: ", value = ""),
+                selectInput("lang", "Choose a language:",
+                            choices = languages$name),
+                sliderInput("opacity", label = "Opacity",
+                            min = 0, max = 1,
+                            value = 0.8),
+                sliderInput("gridSize", label = "Grid Size",
+                            min = 1, max = 2000,
+                            value = 100),
+                sliderInput("bandwidth", label = "Bandwidth",
+                            min = 0.000001, max = 0.5,
+                            value = 0.001),
+                sliderInput("dateSlider", label = h3("Date"),
+                            min = min(data$Date), max = max(data$Date),
+                            value = c(min(data$Date),max(data$Date))),
+              ),
+              mainPanel(
+                leafletOutput("map") 
+              )
+            )
+          ),
+      #Time Series ===========================================
+     tabPanel("When...",
+          sidebarLayout(
+            sidebarPanel(
+              helpText("Select a time interval to examine."),
+              sliderInput("slider1", label = h3("Date"),
+                          min = min(time.series$Date), max = max(time.series$Date),
+                          value = c(min(time.series$Date),max(time.series$Date)))
+            ),
+            mainPanel(
+              plotlyOutput("series")
+            )
+            
+          )
+        ),
+      #Word Cloud ===========================================
+        tabPanel("What...",
+          sidebarPanel(
+            selectInput("lang", "Choose a language:",
+                        choices = languages$name),
+            sliderInput("dateSlider", label = h3("Date"),
+                        min = min(data$Date), max = max(data$Date),
+                        value = min(data$Date)
+            ),
+            actionButton("update", "Change")
+          ),
+          
+          mainPanel(
+            wordcloud2Output("cloud")
+          )
+        )
+    )
   
-  dashboardHeader(),
- 
-   # SIDE BAR
-  dashboardSidebar(
-    textInput("wordFilter", "Filter by word: ", value = ""),
-    selectInput("lang", "Choose a language:",
-                choices = languages$name),
-    sliderInput("opacity", label = "Opacity",
-                min = 0, max = 1,
-                value = 0.8),
-    sliderInput("gridSize", label = "Grid Size",
-                min = 1, max = 2000,
-                value = 100),
-    sliderInput("bandwidth", label = "Bandwidth",
-                min = 0.000001, max = 0.5,
-                value = 0.001),
-    sliderInput("dateSlider", label = h3("Date"),
-                min = min(data$Date), max = max(data$Date),
-                value = c(min(data$Date),max(data$Date))),
-    actionButton("update", "Change")
-  ),
-  
-  
-  # BODY, BACKGROUND
-  dashboardBody(
-    tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
-    leafletOutput("map"),
-    
-    wordcloud2Output("cloud")
-    
-    # absolutePanel(id="controls",
-    #               style="z-index:500;",
-    #               class = "panel panel-default",
-    #               draggable = TRUE,
-    #               wordcloud2Output("cloud"))
-  )
-)
 
 
+#SERVER ------------------------------------------
 server <- function(input, output) {
   
-  # HEATMAP
+  # HEATMAP  ===========================================
   output$map <- renderLeaflet({
     lang = languages %>% filter(name == input$lang)
     
@@ -176,7 +216,28 @@ server <- function(input, output) {
                     , lat2 = 44 )
   })
   
-  # WORDCLOUD
+  
+  # TIME SERIES  ========================================
+  get.data <- reactive({
+    min<-as.Date(input$slider1[1])
+    max<-as.Date(input$slider1[2])
+    
+    time.series<-time.series%>%filter(Date>=min & Date<=max)
+    
+    times<-(time.series$Time)
+    time.format<- "%Y-%m-%d %H:%M"
+    times.formatted <-(as.POSIXct(times, format=time.format)) 
+    time.series$Time<- times.formatted
+    return(as.data.frame(time.series))
+  })
+  
+  output$series <- renderPlotly({
+    ggplot(data = get.data(), aes(x = Time, y = Tweets, group = 1))+
+      geom_line(color = "#00AFBB", size = 0.1)+
+      labs(x = "Time", y = "Number of tweets", title = "Number of tweets posted at a given time")
+  })
+  
+  # WORDCLOUD  ===========================================
   terms <- reactive({
     # Change when the "update" button is pressed...
     input$update
