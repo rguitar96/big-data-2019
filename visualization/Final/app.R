@@ -11,8 +11,9 @@ library("rgdal")
 library(tm)
 library(wordcloud)
 library(wordcloud2)
+library(stopwords)
 library(memoise)
-
+library(raster)
 
 languages = data.frame(
   name = c("Spanish",
@@ -43,8 +44,11 @@ languages = data.frame(
            "sv"))
 
 
-data <- read.csv("../data/clean-twitter-data.csv")
+data <- read.csv("../data/clean-twitter-data.csv", fileEncoding = "latin1")
 data$Date <- as.Date(data$Date)
+data$HashTags = regmatches(data$Tweet.content, gregexpr("#(\\d|\\w)+", data$Tweet.content))
+
+
 
 #Using "memoise" to automatically cache the results
 getTermMatrix <- memoise(function(langName, startDate, endDate) {
@@ -52,12 +56,16 @@ getTermMatrix <- memoise(function(langName, startDate, endDate) {
   lang = languages %>% filter(name == langName)
   
   
-  text <- data %>%
-    filter(Tweet.language..ISO.639.1. == lang$code) %>% 
-    filter(Date >= startDate) %>% 
-    filter(Date <= endDate)
+  textAll = unlist(data %>%
+                     filter(Tweet.language..ISO.639.1. == lang$code) %>% 
+                     filter(Date == startDate) %>%
+                     #filter(Date >= startDate) %>%
+                     #filter(Date <= endDate) %>%
+                     dplyr::select(HashTags), recursive = FALSE)
   
-  docs = Corpus(VectorSource(text$Tweet.content))
+  text = (textAll[lapply(textAll, length)>0])
+  
+  docs = Corpus(VectorSource(text))
   
   toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
   docs <- tm_map(docs, toSpace, "/")
@@ -69,7 +77,7 @@ getTermMatrix <- memoise(function(langName, startDate, endDate) {
   # Remove numbers
   docs <- tm_map(docs, removeNumbers)
   # Remove language common stopwords
-  docs <- tm_map(docs, removeWords, stopwords(tolower(lang$name)))
+  docs <- tm_map(docs, removeWords,stopwords::stopwords(tolower(lang$name), source = "stopwords-iso"))
   # Remove punctuations
   docs <- tm_map(docs, removePunctuation)
   # Eliminate extra white spaces
@@ -87,8 +95,10 @@ getTermMatrix <- memoise(function(langName, startDate, endDate) {
 
 
 ui <- dashboardPage(
+  
   dashboardHeader(),
-  # SIDE BAR
+ 
+   # SIDE BAR
   dashboardSidebar(
     textInput("wordFilter", "Filter by word: ", value = ""),
     selectInput("lang", "Choose a language:",
@@ -107,16 +117,20 @@ ui <- dashboardPage(
                 value = c(min(data$Date),max(data$Date))),
     actionButton("update", "Change")
   ),
+  
+  
   # BODY, BACKGROUND
   dashboardBody(
     tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
     leafletOutput("map"),
     
-    absolutePanel(id="controls",
-                  style="z-index:500;",
-                  class = "panel panel-default",
-                  draggable = TRUE,
-                  wordcloud2Output("plot"))
+    wordcloud2Output("cloud")
+    
+    # absolutePanel(id="controls",
+    #               style="z-index:500;",
+    #               class = "panel panel-default",
+    #               draggable = TRUE,
+    #               wordcloud2Output("cloud"))
   )
 )
 
@@ -176,7 +190,7 @@ server <- function(input, output) {
   })
   
   
-  output$plot <- renderWordcloud2({
+  output$cloud <- renderWordcloud2({
     wordcloud2(data=terms(), size = 0.7, shape = 'pentagon')
   })
 }

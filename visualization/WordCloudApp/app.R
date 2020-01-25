@@ -2,9 +2,10 @@ library(shiny)
 library(tm)
 library(wordcloud)
 library(wordcloud2)
+library(stopwords)
 library(memoise)
 library(dplyr)
-
+library(tidyverse)
 
 languages = data.frame(
               name = c("Spanish",
@@ -35,43 +36,52 @@ languages = data.frame(
                           "sv"))
 
 
+
+data <- read.csv("../data/clean-twitter-data.csv", fileEncoding = "latin1")
+data$Date <- as.Date(data$Date)
+
+data$HashTags = regmatches(data$Tweet.content, gregexpr("#(\\d|\\w)+", data$Tweet.content))
+
+
 #Using "memoise" to automatically cache the results
-getTermMatrix <- memoise(function(langName, startDate, endDate) {
+getTermMatrix <- memoise(function(langName, selectedDate) {
   
   lang = languages %>% filter(name == langName)
-                       
   
-  text <-data %>%
-    filter(`Tweet language (ISO 639-1)` == lang$code) %>% 
-    filter(Date >= startDate) %>% 
-    filter(Date <= endDate) %>% 
-    select(`Tweet content`) 
+  textAll = unlist(
+    data %>%
+    filter(Tweet.language..ISO.639.1. == lang$code) %>% 
+    filter(Date == selectedDate) %>%
+    select(HashTags), 
+    recursive = FALSE)
   
-    docs = Corpus(VectorSource(text))
-    
-    toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
-    docs <- tm_map(docs, toSpace, "/")
-    docs <- tm_map(docs, toSpace, "@")
-    docs <- tm_map(docs, toSpace, "\\|")
-    
-    # Convert the text to lower case
-    docs <- tm_map(docs, content_transformer(tolower))
-    # Remove numbers
-    docs <- tm_map(docs, removeNumbers)
-    # Remove language common stopwords
-    docs <- tm_map(docs, removeWords, stopwords(tolower(lang$name)))
-    # Remove punctuations
-    docs <- tm_map(docs, removePunctuation)
-    # Eliminate extra white spaces
-    docs <- tm_map(docs, stripWhitespace)
-    # Remove your own stop word
-    # specify your stopwords as a character vector
-    docs <- tm_map(docs, removeWords, c("https", "tco", "...", "com"))
-    
-    dtm <- TermDocumentMatrix(docs)
-    m <- as.matrix(dtm)
-    v <- sort(rowSums(m),decreasing=TRUE)
-    d <- data.frame(word = names(v),freq=v)
+  text = (textAll[lapply(textAll, length)>0])
+  
+  docs = Corpus(VectorSource(text))
+  
+  toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
+  docs <- tm_map(docs, toSpace, "/")
+  docs <- tm_map(docs, toSpace, "@")
+  docs <- tm_map(docs, toSpace, "\\|")
+  
+  # Convert the text to lower case
+  docs <- tm_map(docs, content_transformer(tolower))
+  # Remove numbers
+  docs <- tm_map(docs, removeNumbers)
+  # Remove language common stopwords
+  docs <- tm_map(docs, removeWords,stopwords::stopwords(tolower(lang$name), source = "stopwords-iso"))
+  # Remove punctuations
+  docs <- tm_map(docs, removePunctuation)
+  # Eliminate extra white spaces
+  docs <- tm_map(docs, stripWhitespace)
+  # Remove your own stop word
+  # specify your stopwords as a character vector
+  docs <- tm_map(docs, removeWords, c("https", "tco", "...", "com"))
+  
+  dtm <- TermDocumentMatrix(docs)
+  m <- as.matrix(dtm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  d <- data.frame(word = names(v),freq=v)
 })
 
 
@@ -87,15 +97,17 @@ ui <-  fluidPage(
                   choices = languages$name),
       sliderInput("dateSlider", label = h3("Date"),
                     min = min(data$Date), max = max(data$Date),
-                    value = c(min(data$Date),max(data$Date))),
+                    value = min(data$Date)
+                  ),
       actionButton("update", "Change")
     ),
     
     mainPanel(
-      wordcloud2Output("plot")
+      wordcloud2Output("cloud")
     )
   )
 )
+
 
 # Define server logic required to draw a histogram ----
 server <- function(input, output) {
@@ -108,14 +120,13 @@ server <- function(input, output) {
                 isolate({
                   withProgress({
                     setProgress(message = "Processing corpus...")
-                    getTermMatrix(input$lang, input$dateSlider[1], input$dateSlider[2])
+                    getTermMatrix(input$lang, input$dateSlider)
                   })
                 })
               })
               
-              
-              output$plot <- renderWordcloud2({
-                wordcloud2(data=terms(), size = 0.7, shape = 'pentagon')
+              output$cloud <- renderWordcloud2({
+                wordcloud2(data=terms(), size = 0.8, shape = 'pentagon')
               })
               }
 
