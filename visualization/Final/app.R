@@ -153,7 +153,8 @@ ui <- navbarPage(
           ),
           
           mainPanel(
-            wordcloud2Output("cloud")
+            wordcloud2Output("cloud"),
+            plotlyOutput("barplot")
           )
         )
     )
@@ -231,14 +232,28 @@ server <- function(input, output) {
     isolate({
       withProgress({
         setProgress(message = "Processing corpus...")
-        getTermMatrix(input$lang, input$dateSlider[1], input$dateSlider[2])
+        words<-getTermMatrix(input$lang, input$dateSlider[1], input$dateSlider[2])
+        return(words)
       })
     })
   })
   
   
   output$cloud <- renderWordcloud2({
-    wordcloud2(data=terms(), size = 0.7, shape = 'pentagon')
+    data=terms()
+    wordcloud2(data[1:40,], size = 0.7, shape = 'pentagon')
+  })
+  
+  output$barplot <- renderPlotly({
+    data=terms()
+    data<-data[1:10,]
+    # Factor levels in decreasing order
+    data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
+
+        ggplot(data, aes(x=word, y=freq)) +
+      geom_bar(stat="identity", fill = "#00AFBB") +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+      labs(x = "HashTag", y = "Number of appearances", title = "Top 10 HashTags")
   })
 }
 
