@@ -249,22 +249,44 @@ server <- function(input, output) {
   
   output$cloud <- renderWordcloud2({
     data=terms()
+    
+   if(length(data[[1]]) > 0)
+   {
     amount<-input$cloudNumberHashTagsSlider[1]
     wordcloud2(data[1:amount,],
                size = 0.7, shape = 'pentagon',
                color = "#00AFBB")
+  }
+  else
+  {
+    validate(
+      need(length(data[[1]]) > 0,
+           "No hashtags used during the selected time and language. Please try a different combination!")
+    )
+  }
   })
   
   output$barplot <- renderPlotly({
     data=terms()
-    data<-data[1:10,]
-    # Factor levels in decreasing order
-    data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
     
-    ggplot(data, aes(x=word, y=freq)) +
-      geom_bar(stat="identity", fill = "#00AFBB") +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-      labs(x = "", y = "Number of uses", title = "Top 10 HashTags")
+    if(length(data[[1]]) > 0)
+    {
+      data<-data[1:pmin(10, length(data[[1]])),]
+      # Factor levels in decreasing order
+      data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
+      
+      ggplot(data, aes(x=word, y=freq)) +
+        geom_bar(stat="identity", fill = "#00AFBB") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+        labs(x = "", y = "Number of uses", title = "Top 10 HashTags")
+    }
+    else
+    {
+      validate(
+        need(length(data[[1]]) > 0,
+             "")
+      )
+    }
   })
 }
 
