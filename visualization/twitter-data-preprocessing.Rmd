@@ -28,7 +28,7 @@ is.na(data) # There are NAs
 
 ### Dropping unnecesary columns
 ```{r}
-data<-select(data,-c("Tweet Id","User Name","Bio","Place (as appears on Bio)","Profile picture","Listed","Tweet Url"))
+data<-select(data,-c("Tweet Id","User Name", "Nickname",  "Bio","Favs","RTs","Country","Place (as appears on Bio)","Profile picture", "Followers", "Following", "Listed","Tweet Url"))
 ```
 
 ### Removing tweets without coordinates
@@ -36,12 +36,6 @@ data<-select(data,-c("Tweet Id","User Name","Bio","Place (as appears on Bio)","P
 data<-data%>%drop_na(Latitude, Longitude)
 ```
 
-
-### NA for Favs and RTs are changed to 0
-```{r}
-data$Favs[is.na(data$Favs)] <- 0
-data$RTs[is.na(data$RTs)] <- 0
-```
 ### Saving the clean dataset
 ```{r}
 write.csv(data, file = "./data/clean-twitter-data.csv")
