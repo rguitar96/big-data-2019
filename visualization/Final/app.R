@@ -253,7 +253,7 @@ server <- function(input, output) {
     data=terms()
     amount<-input$cloudNumberHashTagsSlider[1]
     wordcloud2(data[1:amount,],
-               size = 0.7, shape = 'pentagon')
+               size = 0.7, shape = 'pentagon', color = RColorBrewer::brewer.pal(100,"Paired"))
   })
   
   output$barplot <- renderPlotly({
