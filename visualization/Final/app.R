@@ -242,10 +242,8 @@ server <- function(input, output) {
       withProgress({
         setProgress(message = "Processing tweets...")
         words<-getTermMatrix(input$cloudLang, input$cloudDate)
-        #amount<-input$cloudNumberHashTagsSlider[1]
         return(words)
       })
-    #})
   })
   
   
@@ -258,7 +256,6 @@ server <- function(input, output) {
   
   output$barplot <- renderPlotly({
     data=terms()
-    #data<-data[1]
     data<-data[1:10,]
     # Factor levels in decreasing order
     data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
