@@ -151,6 +151,9 @@ ui <- navbarPage(
              selectInput("cloudDate", "Choose a date:",
                          choices = c("2016-04-14", "2016-04-15","2016-04-16","2016-04-17", "2016-04-18","2016-04-19", 
                                      "2016-04-20","2016-04-21","2016-04-22")),
+             sliderInput("cloudNumberHashTagsSlider", label = h3("Number of HashTags:"),
+                         min = 10, max = 100,
+                         value =25),
              actionButton("update", "Change")
            ),
            
@@ -237,7 +240,7 @@ server <- function(input, output) {
     # ...but not for anything else
     isolate({
       withProgress({
-        setProgress(message = "Processing corpus...")
+        setProgress(message = "Processing tweets...")
         words<-getTermMatrix(input$cloudLang, input$cloudDate)
         return(words)
       })
@@ -247,7 +250,8 @@ server <- function(input, output) {
   
   output$cloud <- renderWordcloud2({
     data=terms()
-    wordcloud2(data[1:40,],
+    amount<-input$cloudNumberHashTagsSlider[1]
+    wordcloud2(data[1:amount,],
                size = 0.7, shape = 'pentagon')
   })
   
