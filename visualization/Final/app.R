@@ -154,7 +154,7 @@ ui <- navbarPage(
              sliderInput("cloudNumberHashTagsSlider", label = h3("Number of HashTags:"),
                          min = 10, max = 100,
                          value =25),
-             actionButton("update", "Change")
+             #actionButton("update", "Change")
            ),
            
            mainPanel(
@@ -236,15 +236,16 @@ server <- function(input, output) {
   # WORDCLOUD  ===========================================
   terms <- reactive({
     # Change when the "update" button is pressed...
-    input$update
+    #input$update
     # ...but not for anything else
-    isolate({
+    #isolate({
       withProgress({
         setProgress(message = "Processing tweets...")
         words<-getTermMatrix(input$cloudLang, input$cloudDate)
+        #amount<-input$cloudNumberHashTagsSlider[1]
         return(words)
       })
-    })
+    #})
   })
   
   
@@ -257,6 +258,7 @@ server <- function(input, output) {
   
   output$barplot <- renderPlotly({
     data=terms()
+    #data<-data[1]
     data<-data[1:10,]
     # Factor levels in decreasing order
     data$word <- factor(data$word,levels = data$word[order(data$freq, decreasing = TRUE)])
