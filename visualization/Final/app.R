@@ -48,7 +48,7 @@ languages = data.frame(
            "hu", 
            "fi", 
            "ru", 
-           "sv"))
+           "sv"), stringsAsFactors = FALSE)
 
 #Plot of tweet time series ---------------------
 ggplot(data = time.series, aes(x = Time, y = Tweets, group = 1))+
@@ -105,7 +105,7 @@ ui <- navbarPage(
              sidebarPanel(
                textInput("wordFilter", "Filter by word: ", value = ""),
                selectInput("mapLang", "Choose a language:",
-                           choices = languages$name),
+                           choices = rbind(c("All", "All"), languages)$name),
                sliderInput("opacity", label = "Opacity",
                            min = 0, max = 1,
                            value = 0.8),
@@ -175,17 +175,28 @@ ui <- navbarPage(
 server <- function(input, output) {
   # HEATMAP  ===========================================
   output$map <- renderLeaflet({
-    lang = languages %>% filter(name == input$mapLang)
+   
     
-    dat <- data %>% 
+    dat <- data %>%
       filter(Latitude < 44) %>% 
       filter(Latitude > 35) %>% 
       filter(Longitude > -12) %>% 
-      filter(Longitude < 7) %>% 
-      filter(Tweet.language..ISO.639.1. == lang$code) %>% 
+      filter(Longitude < 7)  
+      
+    if(input$mapLang != "All")
+    {
+      lang = languages %>% filter(name == input$mapLang)
+      
+      dat = dat %>%  filter(Tweet.language..ISO.639.1. == lang$code)
+    } 
+      
+    dat = dat %>% 
       filter(Date >= input$mapDateSlider[1]) %>%
       filter(Date <= input$mapDateSlider[2]) %>% 
       filter(grepl(tolower(input$wordFilter),tolower(Tweet.content)))
+    
+    if(length(dat[[1]]) > 0)
+    {
     
     dat <- data.table(dat)
     kde <- bkde2D(dat[ , list(Longitude, Latitude)],
@@ -210,6 +221,15 @@ server <- function(input, output) {
                     , lat1 = 35
                     , lng2 = 7
                     , lat2 = 44 )
+    }
+    else
+    {
+      validate(
+        need(length(dat[[1]]) > 0,
+             "No tweets found with the inputted word. Please try a differnt one!")
+      )
+    }
+      
   })
   
   
@@ -254,7 +274,7 @@ server <- function(input, output) {
    {
     amount<-input$cloudNumberHashTagsSlider[1]
     wordcloud2(data[1:amount,],
-               size = 0.7, shape = 'pentagon',
+               size = 1, shape = 'pentagon',
                color = "#00AFBB")
   }
   else

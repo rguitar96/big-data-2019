@@ -5,9 +5,9 @@ account: dburrell
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1703789
-bundleId: 2753257
+bundleId: 2756680
 url: https://dburrell.shinyapps.io/BD_E2_TD/
-when: 1579992214.3452
+when: 1580155889.32055
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: app-2.R|clean-twitter-data.csv|dataGeneration.R
