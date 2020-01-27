@@ -17,9 +17,15 @@ library(raster)
 library(ggplot2)
 library("plotly")
 
-#source('dataGeneration.R')
 
-load(".RData")
+
+#Data Source------------------
+
+#If running locally uncoment this line
+source('dataGeneration.R')
+
+#If running on shinyapps uncomment this line and ensure the RData file is pubslish with script
+#load(".RData")
 
 #Dataframe of all languages and their associated ISO codes ----------------
 languages = data.frame(
